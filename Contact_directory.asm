@@ -2,319 +2,332 @@ INCLUDE Irvine32.inc
 
 .data
 
-    ;Constants
-    Max_Contacts      =       20
-    Name_Size         =       30
-    Ph_Num_Size       =       15
-    Addr_Size         =       50
-    Email_Size        =       30
+    ; Constants
+    Max_Contacts      =  20
+    Name_Size         =  30
+    Ph_Num_Size       =  15
+    Addr_Size         =  50
+    Email_Size        =  30
 
-    ;variables
-    names             DB      Max_Contacts * Name_Size DUP(?)
-    nums              DB      Max_Contacts * Ph_Num_Size DUP(?)
-    addrs             DB      Max_Contacts * Addr_Size DUP(?)
-    emails            DB      Max_Contacts * Email_Size DUP(?)
-    Contact_Count     DW      19
+    ; storage (arrays of fixed-size records)
+    names             DB Max_Contacts * Name_Size DUP(?)
+    nums              DB Max_Contacts * Ph_Num_Size DUP(?)
+    addrs             DB Max_Contacts * Addr_Size DUP(?)
+    emails            DB Max_Contacts * Email_Size DUP(?)
+    Contact_Count     DD 0
 
+    ; prompts / messages
+    MenuHeader        DB " ----- Main Menu ----- ",0Dh,0Ah,0
+    MenuList          DB 0Dh,0Ah,"1. Add",0Dh,0Ah,"2. Update (Sort)",0Dh,0Ah,"3. Display",0Dh,0Ah,"4. Delete",0Dh,0Ah,"5. Search",0Dh,0Ah,"6. Exit Directory",0Dh,0Ah,0
+    MenuChoiceMsg     DB 0Dh,0Ah,"Enter your Choice: ",0
+    InvalidMenuChoice DB 0Dh,0Ah,"Invalid Choice!",0Dh,0Ah,0
 
-    ; prompts
-    MenuHeader        DB      " ----- Main Menu ----- ",0Dh,0Ah,0
-    MenuList          DB      0Dh,0Ah,"1. Add",0Dh,0Ah,"2. Update",0Dh,0Ah,"3. Display",0Dh,0Ah,"4. Delete",0Dh,0Ah,"5. Search",0Dh,0Ah,"6. Exit Directory",0Dh,0Ah,0
-    MenuChoice        DB      ?
+    NamePrompt        DB "Name: ",0
+    PhPrompt          DB "Phone Number: ",0
+    AddrPrompt        DB "Address: ",0
+    EmailPrompt       DB "Email: ",0
 
-    InvalidMenuChoice DB      0Dh,0Ah,"Invalid Choice!",0Dh,0Ah,0
+    addMsg            DB "Enter Following Details: ",0
+    addedMsg          DB 0Dh,0Ah,"-- Contact has been added to the directory. --",0Dh,0Ah,0
+    dirFullMsg        DB 0Dh,0Ah,"Contact Directory is Full! No more contacts can be added.",0Dh,0Ah,0
+    continueMsg       DB 0Dh,0Ah,"Press any key to continue...",0
 
-    NamePrompt        DB      "Name: ",0
-    PhPrompt          DB      "Phone Number: ",0
-    AddrPrompt        DB      "Address: ",0
-    EmailPrompt       DB      "Email: ",0
+    doneSortMsg       DB 0Dh,0Ah,"-- Contacts sorted successfully. --",0Dh,0Ah,0
 
-    ; messages
-    MenuChoiceMsg     DB      0Dh,0Ah,"Enter your Choice: ",0
-    exitProgramMsg    DB      0Dh,0Ah,"Exiting...",0
-    continueMsg       DB      0Dh,0Ah,"Press any key to continue...",0
-
-    addMsg            DB      "Enter Following Details: ",0
-    addedMsg          DB      0Dh,0Ah,"-- Contact has been added to the directory. --",0Dh,0Ah,0
-    dirFullMsg        DB      0Dh,0Ah,"Contact Directory is Full! No more contacts can be added.",0Dh,0Ah,0
-
-
-                      _Wait   PROTO
-                      _ClrScr PROTO
 
 .code
 
+                    _Wait  PROTO
+
 main PROC
-    top:        
-                mov    edx, OFFSET MenuHeader
-                call   WriteString
-                mov    edx, OFFSET MenuList
-                call   WriteString
-                mov    edx, OFFSET MenuChoiceMsg
-                call   WriteString
-                call   ReadInt
+    top:            
+                    mov    edx, OFFSET MenuHeader
+                    call   WriteString
+                    mov    edx, OFFSET MenuList
+                    call   WriteString
+                    mov    edx, OFFSET MenuChoiceMsg
+                    call   WriteString
+                    call   ReadInt                          ; returns choice in EAX
 
-                cmp    eax, 1
-                je     _add
-                cmp    eax, 2
-                je     _update
-                cmp    eax, 3
-                je     _display
-                cmp    eax, 4
-                je     _delete
-                cmp    eax, 5
-                je     _search
-                cmp    eax, 6
-                je     _exit
+                    cmp    eax, 1
+                    je     _add
+                    cmp    eax, 2
+                    je     _update
+                    cmp    eax, 3
+                    je     _display
+                    cmp    eax, 4
+                    je     _delete
+                    cmp    eax, 5
+                    je     _search
+                    cmp    eax, 6
+                    je     _exit
 
-                mov    edx, OFFSET InvalidMenuChoice
-                call   WriteString
-                jmp    _refresh
+                    mov    edx, OFFSET InvalidMenuChoice
+                    call   WriteString
+                    jmp    _refresh
 
-    _add:       
-                call   AddContact
-    ;call WriteDec
-                jmp    _refresh
-    _update:    
-                call   WriteDec
-                jmp    _refresh
-    _display:   
-                call   WriteDec
-                jmp    _refresh
-    _delete:    
-                call   WriteDec
-                jmp    _refresh
-    _search:    
-                call   WriteDec
-                jmp    _refresh
+    _add:           
+                    call   AddContact
+                    jmp    _refresh
 
-    _refresh:   
-                call   _Wait
-                call   _ClrScr
-                jmp    top
+    _update:        
+    ; TODO: Implement a UpdateContact procedure
+                    jmp    _refresh
 
-    _exit:      
-                Exit
+    _display:       
+    ; TODO: Implement a DisplayContacts procedure
+                    call   writeDec
+                    jmp    _refresh
+
+    _delete:        
+    ; TODO: Implement a DeleteContact procedure
+                    call   writeDec
+                    jmp    _refresh
+
+    _search:        
+    ; TODO: Implement a SearchContact procedure
+                    call   writeDec
+                    jmp    _refresh
+
+    _refresh:       
+                    call   _Wait
+                    call   Clrscr
+                    jmp    top
+
+    _exit:          
+                    Exit
 main ENDP
 
 _Wait PROC
-                mov    edx, offset continueMsg
-                call   WriteString
-                call   readchar
-                ret
+                    mov    edx, OFFSET continueMsg
+                    call   WriteString
+                    call   ReadChar
+                    ret
 _Wait ENDP
 
-_ClrScr PROC
-                mov    dh, 0
-                mov    dl, 0
-                call   gotoxy
-
-                mov    ecx, 100*40
-                mov    al, ' '
-    ClearLoop:  
-                call   WriteChar
-                loop   ClearLoop
-
-                mov    dh, 0
-                mov    dl, 0
-
-                call   gotoxy
-                ret
-_ClrScr ENDP
-
+    ; ----------------------
+    ; AddContact - add next free contact
+    ; ----------------------
 AddContact PROC
-                mov    ax, Contact_Count
-                cmp    ax, Max_Contacts
-                jae    dirFull
+    ; compare Contact_Count and Max_Contacts
+                    mov    eax, Contact_Count
+                    cmp    eax, Max_Contacts
+                    jae    dirFull
 
-                mov    edx, offset addMsg
-                call   writestring
-                call   crlf
+                    mov    edx, OFFSET addMsg
+                    call   WriteString
+                    call   Crlf
 
-    ;Add Name
-                movzx  eax, Contact_Count
-                mov    ebx, eax
-                imul   ebx, Name_Size
-                lea    edi, names[ebx]
+                    mov    ecx, Contact_Count               ; ECX = current index i
 
-                mov    edx, offset NamePrompt
-                call   writestring
-                mov    edx, edi
-                mov    ecx, Name_Size
-                call   readstring
+    ; Name
+                    mov    ebx, ecx
+                    imul   ebx, Name_Size
+                    lea    edi, names[ebx]
+                    mov    edx, OFFSET NamePrompt
+                    call   WriteString
+                    mov    edx, edi
+                    mov    eax, Name_Size - 1               ; Max chars to read (one less for null-terminator)
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString                       ; Returns actual length in EAX
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0          ; Null-terminate the string
 
-    ;Add Phone Number
-                movzx  eax, Contact_Count
-                mov    ebx, eax
-                imul   ebx, Ph_Num_Size
-                lea    edi, nums[ebx]
+    ; Phone
+                    mov    ebx, ecx                         ; EBX = i
+                    imul   ebx, Ph_Num_Size
+                    lea    edi, nums[ebx]
+                    mov    edx, OFFSET PhPrompt
+                    call   WriteString
+                    mov    edx, edi
+                    mov    eax, Ph_Num_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
 
-                mov    edx, offset PhPrompt
-                call   writestring
-                mov    edx, edi
-                mov    ecx, Ph_Num_Size
-                call   readstring
+    ; Address
+                    mov    ebx, ecx                         ; EBX = i
+                    imul   ebx, Addr_Size
+                    lea    edi, addrs[ebx]
+                    mov    edx, OFFSET AddrPrompt
+                    call   WriteString
+                    mov    edx, edi
+                    mov    eax, Addr_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
 
-    ;Add Address
-                movzx  eax, Contact_Count
-                mov    ebx, eax
-                imul   ebx, Addr_Size
-                lea    edi, addrs[ebx]
+    ; Email
+                    mov    ebx, ecx                         ; EBX = i
+                    imul   ebx, Email_Size
+                    lea    edi, emails[ebx]
+                    mov    edx, OFFSET EmailPrompt
+                    call   WriteString
+                    mov    edx, edi
+                    mov    eax, Email_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
 
-                mov    edx, offset AddrPrompt
-                call   writestring
-                mov    edx, edi
-                mov    ecx, Addr_Size
-                call   readstring
+    ; increment count (DWORD)
+                    mov    eax, Contact_Count
+                    inc    eax
+                    mov    Contact_Count, eax
 
-    ;Add Emails
-                movzx  eax, Contact_Count
-                mov    ebx, eax
-                imul   ebx, Email_Size
-                lea    edi, emails[ebx]
+                    mov    edx, OFFSET addedMsg
+                    call   WriteString
+                    ret
 
-                mov    edx, offset EmailPrompt
-                call   writestring
-                mov    edx, edi
-                mov    ecx, email_Size
-                call   readstring
-
-                inc    Contact_Count
-
-                mov    edx, offset addedMsg
-                call   writestring
-                ret
-
-    dirFull:    
-                mov    edx, offset dirFullMsg
-                call   writeString
-   
-                ret
+    dirFull:        
+                    mov    edx, OFFSET dirFullMsg
+                    call   WriteString
+                    ret
 AddContact ENDP
 
-SortContact Proc
-                pushad
-    
-                mov    ax, Contact_Count
-                cmp    ax, 1
-                jbe    doneSorting
+    ; ----------------------
+    ; swapblock - swap ECX bytes between [ESI] and [EDI]
+    ; ----------------------
+swapblock PROC
+                    push   esi
+                    push   edi
+                    push   ecx
+    ; ESI and EDI point to blocks; ECX = byte count
+    swap_loop:      
+                    mov    al, [esi]
+                    mov    bl, [edi]
+                    mov    [esi], bl
+                    mov    [edi], al
+                    inc    esi
+                    inc    edi
+                    dec    ecx
+                    jnz    swap_loop
+                    pop    ecx
+                    pop    edi
+                    pop    esi
+                    ret
+swapblock ENDP
 
-                mov    cx, ax
-                dec    cx
+    ; ----------------------
+    ; SortContact - bubble sort by name ascending
+    ; ----------------------
+SortContact PROC
+                    pushad
 
-    outerloop:  
-                mov    bx, 0
+                    mov    eax, Contact_Count
+                    cmp    eax, 2
+                    jb     doneSorting                      ; 0 or 1 contact - nothing to sort
 
-    innerloop:  
-                mov    dx, Contact_Count
-                dec    dx
-                sub    dx, bx
-                jbe    nextPass
+                    dec    eax
+                    mov    ecx, eax                         ; ECX = N-1 (outer passes count down to 1)
 
-    ;compare names[i] and names[i+1]
-                movzx  esi, bx
-                imul   esi, Name_Size
-                lea    esi, names[esi]
+    outer_loop:     
+                    push   ecx                              ; Save outer loop counter
+                    mov    ebx, 0                           ; EBX = i index (0)
+                    mov    edx, ecx                         ; EDX = Inner loop limit for i (i < EDX)
 
-                movzx  edi, bx
-                inc    edi
-                imul   edi, Name_Size
-                lea    edi, names[edi]
+    inner_loop:     
+                    cmp    ebx, edx                         ; Compare i (EBX) with limit (EDX)
+                    jae    inner_done_pass                  ; if i >= limit, done with inner loop for this pass
 
-                mov    ecx, Name_Size
-                push   bx
-                push   cx
+    ; compute pointers for names[i] and names[i+1]
+                    mov    esi, ebx
+                    imul   esi, Name_Size
+                    lea    esi, names[esi]
 
-                mov    eax, 0
-    compareloop:
-                mov    al, [esi]
-                mov    ah, [edi]
-                cmp    al, ah
-                jne    foundDiff
-                cmp    al, 0
-                je     sameNames
-                inc    esi
-                inc    edi
-                loop   compareloop
+                    mov    edi, ebx
+                    inc    edi
+                    imul   edi, Name_Size
+                    lea    edi, names[edi]
 
-                jmp    sameNames
+    ; compare names lexicographically
+                    mov    eax, Name_Size                   ; Using EAX as temp loop counter for comparison
+    compare_loop:   
+                    mov    cl, [esi]                        ; Use CL for current char [i]
+                    mov    dl, [edi]                        ; Use DL for current char [i+1]
+                    cmp    cl, dl
+                    jne    compare_diff                     ; Different, check if swap needed
+                    cmp    cl, 0
+                    je     compare_equal                    ; Reached null-terminator (strings are equal)
+                    inc    esi
+                    inc    edi
+                    dec    eax
+                    jnz    compare_loop
+                    jmp    compare_equal                    ; Strings are equal up to Name_Size
 
-    foundDiff:  
-                jae    noSwap
+    compare_diff:   
+                    cmp    cl, dl
+                    ja     do_swap                          ; cl > dl means names[i] > names[i+1], so swap (ascending sort)
+                    jmp    no_swap                          ; cl < dl means already in order
 
-                pop    cx
-                pop    bx
-                push   bx
+    compare_equal:  
+                    jmp    no_swap                          ; Strings are considered equal (no swap needed)
 
-    ;swap names
-                movzx  esi, bx
-                imul   esi, Name_Size
-                lea    esi, names[esi]
+    do_swap:        
+    ; swap Name (i is in EBX)
+                    mov    eax, ebx
+                    imul   eax, Name_Size
+                    lea    esi, names[eax]
+                    mov    edi, ebx
+                    inc    edi
+                    imul   edi, Name_Size
+                    lea    edi, names[edi]
+                    mov    ecx, Name_Size
+                    call   swapblock
 
-                movzx  edi,bx
-                inc    edi
-                imul   edi, Name_Size
-                lea    edi, names[esi]
+    ; swap Phone
+                    mov    eax, ebx
+                    imul   eax, Ph_Num_Size
+                    lea    esi, nums[eax]
+                    mov    edi, ebx
+                    inc    edi
+                    imul   edi, Ph_Num_Size
+                    lea    edi, nums[edi]
+                    mov    ecx, Ph_Num_Size
+                    call   swapblock
 
-                mov    ecx, Name_Size
-                call   swapblock
+    ; swap Address
+                    mov    eax, ebx
+                    imul   eax, Addr_Size
+                    lea    esi, addrs[eax]
+                    mov    edi, ebx
+                    inc    edi
+                    imul   edi, Addr_Size
+                    lea    edi, addrs[edi]
+                    mov    ecx, Addr_Size
+                    call   swapblock
 
-    ;swap phone numbers
-                movzx  esi, bx
-                imul   esi, Ph_Num_Size
-                lea    esi, nums[esi]
+    ; swap Email
+                    mov    eax, ebx
+                    imul   eax, Email_Size
+                    lea    esi, emails[eax]
+                    mov    edi, ebx
+                    inc    edi
+                    imul   edi, Email_Size
+                    lea    edi, emails[edi]
+                    mov    ecx, Email_Size
+                    call   swapblock
 
-                movzx  edi, bx
-                inc    edi
-                imul   edi, Ph_Num_Size
-                lea    edi, nums[edi]
+    no_swap:        
+                    inc    ebx
+                    jmp    inner_loop
 
-                mov    ecx, Ph_Num_Size
-                call   swapblock
+    inner_done_pass:
+                    pop    ecx                              ; Restore outer loop counter
+                    dec    ecx                              ; Decrement outer loop counter
+                    jnz    outer_loop                       ; Jump if not zero (more passes to go)
 
-    ;swap addresses
-                movzx  esi, bx
-                imul   esi, Addr_Size
-                lea    esi, addrs[esi]
+    doneSorting:    
+                    mov    edx, OFFSET doneSortMsg
+                    call   WriteString
+                    popad
+                    ret
+SortContact ENDP
 
-                movzx  edi, bx
-                inc    edi
-                imul   edi, Addr_Size
-                lea    edi, addrs[edi]
-
-                mov    ecx, Addr_Size
-                call   swapblock
-
-    ;swap emails
-                movzx  esi, bx
-                imul   esi, Email_Size
-                lea    esi, emails[esi]
-
-                movzx  edi, bx
-                inc    edi
-                imul   edi, Email_Size
-                lea    edi, emails[edi]
-
-                mov    ecx, Email_Size
-                call   swapblock
-
-    noSwap:     
-    sameNames:  
-                pop    cx
-                pop    bx
-                inc    bx
-                jmp    innerloop
-
-    nextPass:   
-                loop   outerloop
-
-    doneSorting:
-                mov    edx, offset doneSortMsg
-                call   WriteString
-                call   readchar
-                popad
-
-                ret
-SortContact Proc
-
-end main 
+END main
