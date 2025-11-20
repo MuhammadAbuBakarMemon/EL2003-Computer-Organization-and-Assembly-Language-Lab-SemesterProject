@@ -33,7 +33,21 @@ INCLUDE Irvine32.inc
     continueMsg       DB 0Dh,0Ah,"Press any key to continue...",0
 
     doneSortMsg       DB 0Dh,0Ah,"-- Contacts sorted successfully. --",0Dh,0Ah,0
+    
+    displayEmptyMsg   DB 0Dh,0Ah,"-- Contact Directory is empty. --",0Dh,0Ah,0
+    contactHeader     DB 0Dh,0Ah,"Contact #: ",0
+    contactDiv        DB 0Dh,0Ah,"------------------------------",0Dh,0Ah,0
 
+    ; Update/Edit UI strings
+    UpdatePrompt      DB 0Dh,0Ah,"Enter contact number to update: ",0
+    UpdateMenuList    DB 0Dh,0Ah,"Update Options:",0Dh,0Ah,"1. Name",0Dh,0Ah,"2. Phone",0Dh,0Ah,"3. Address",0Dh,0Ah,"4. Email",0Dh,0Ah,"5. All Fields",0Dh,0Ah,"6. Cancel",0Dh,0Ah,0
+    UpdateChoiceMsg   DB 0Dh,0Ah,"Choose field to update: ",0
+    updatedMsg        DB 0Dh,0Ah,"-- Contact updated. --",0Dh,0Ah,0
+    updateCancelMsg   DB 0Dh,0Ah,"-- Update canceled. --",0Dh,0Ah,0
+    invalidIndexMsg   DB 0Dh,0Ah,"Invalid contact number!",0Dh,0Ah,0
+
+    ; temporary buffer for safe editing (largest field size)
+    tempBuf           DB Addr_Size DUP(?)
 
 .code
 
