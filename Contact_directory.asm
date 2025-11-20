@@ -89,8 +89,7 @@ main PROC
                     jmp    _refresh
 
     _display:       
-    ; TODO: Implement a DisplayContacts procedure
-                    call   writeDec
+                    call   DisplayContacts
                     jmp    _refresh
 
     _delete:        
@@ -697,5 +696,84 @@ UpdateContact PROC
                     popad
                     ret
 UpdateContact ENDP
+
+    ; ----------------------
+    ; DisplayContacts - list all contacts
+    ; ----------------------
+DisplayContacts PROC
+                    pushad
+
+                    mov    eax, Contact_Count
+                    cmp    eax, 0
+                    je     display_empty
+
+                    mov    ebx, 0               ; index = 0
+    display_loop:
+                    ; Print divider
+                    mov    edx, OFFSET contactDiv
+                    call   WriteString
+
+                    ; Print contact number
+                    mov    edx, OFFSET contactHeader
+                    call   WriteString
+                    mov    eax, ebx
+                    inc    eax                  ; display 1-based index
+                    call   WriteInt             ; WriteInt prints EAX
+                    call   Crlf
+
+                    ; Print Name
+                    mov    esi, ebx
+                    imul   esi, Name_Size
+                    mov    edx, OFFSET NamePrompt
+                    call   WriteString          ; "Name: "
+                    lea    edx, names[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Print Phone
+                    mov    esi, ebx
+                    imul   esi, Ph_Num_Size
+                    mov    edx, OFFSET PhPrompt
+                    call   WriteString
+                    lea    edx, nums[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Print Address
+                    mov    esi, ebx
+                    imul   esi, Addr_Size
+                    mov    edx, OFFSET AddrPrompt
+                    call   WriteString
+                    lea    edx, addrs[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Print Email
+                    mov    esi, ebx
+                    imul   esi, Email_Size
+                    mov    edx, OFFSET EmailPrompt
+                    call   WriteString
+                    lea    edx, emails[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    inc    ebx
+                    mov    eax, Contact_Count
+                    cmp    ebx, eax
+                    jl     display_loop
+
+                    ; final divider
+                    mov    edx, OFFSET contactDiv
+                    call   WriteString
+
+                    popad
+                    ret
+
+    display_empty:
+                    mov    edx, OFFSET displayEmptyMsg
+                    call   WriteString
+                    popad
+                    ret
+DisplayContacts ENDP
 
 END main
