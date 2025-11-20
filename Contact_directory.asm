@@ -84,8 +84,8 @@ main PROC
                     call   AddContact
                     jmp    _refresh
 
-    _update:        
-    ; TODO: Implement a UpdateContact procedure
+    _update:       
+                    call UpdateContacts
                     jmp    _refresh
 
     _display:       
@@ -343,5 +343,359 @@ SortContact PROC
                     popad
                     ret
 SortContact ENDP
+
+    ; ----------------------
+    ; UpdateContact - update existing contact(s)
+    ; ----------------------
+UpdateContact PROC
+                    pushad
+                    mov    eax, Contact_Count
+                    cmp    eax, 0
+                    je     uc_display_empty
+
+                    ; Show all contacts to help user choose
+                    call   DisplayContacts
+
+                    ; Prompt for contact number to edit (1-based)
+                    mov    edx, OFFSET UpdatePrompt
+                    call   WriteString
+                    call   ReadInt                 ; returns number in EAX
+                    mov    ebx, eax                ; ebx = user_choice (1-based)
+                    cmp    ebx, 1
+                    jl     uc_invalid_index
+                    mov    eax, Contact_Count
+                    cmp    ebx, eax
+                    jg     uc_invalid_index
+
+                    ; convert to 0-based index
+                    dec    ebx                      ; EBX = index (0-based)
+
+                    ; Display current fields for this contact
+                    ; Name
+                    mov    esi, ebx
+                    imul   esi, Name_Size
+                    mov    edx, OFFSET NamePrompt
+                    call   WriteString
+                    lea    edx, names[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Phone
+                    mov    esi, ebx
+                    imul   esi, Ph_Num_Size
+                    mov    edx, OFFSET PhPrompt
+                    call   WriteString
+                    lea    edx, nums[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Address
+                    mov    esi, ebx
+                    imul   esi, Addr_Size
+                    mov    edx, OFFSET AddrPrompt
+                    call   WriteString
+                    lea    edx, addrs[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Email
+                    mov    esi, ebx
+                    imul   esi, Email_Size
+                    mov    edx, OFFSET EmailPrompt
+                    call   WriteString
+                    lea    edx, emails[esi]
+                    call   WriteString
+                    call   Crlf
+
+                    ; Show update menu
+                    mov    edx, OFFSET UpdateMenuList
+                    call   WriteString
+                    mov    edx, OFFSET UpdateChoiceMsg
+                    call   WriteString
+                    call   ReadInt                 ; choice in EAX
+                    mov    ecx, eax                ; ECX = which field to update
+
+                    cmp    ecx, 6
+                    je     uc_cancel
+
+                    cmp    ecx, 1
+                    je     uc_update_name
+                    cmp    ecx, 2
+                    je     uc_update_phone
+                    cmp    ecx, 3
+                    je     uc_update_addr
+                    cmp    ecx, 4
+                    je     uc_update_email
+                    cmp    ecx, 5
+                    je     uc_update_all
+
+                    ; invalid choice
+                    mov    edx, OFFSET InvalidMenuChoice
+                    call   WriteString
+                    jmp    uc_done
+
+    ; ----------------------
+    ; update name (safe: read into tempBuf first; if input length > 0, copy to target)
+    ; ----------------------
+    uc_update_name:
+                    ; prompt
+                    mov    edx, OFFSET NamePrompt
+                    call   WriteString
+
+                    ; read into tempBuf
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Name_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0   ; null-terminate temp
+                    cmp    eax, 0
+                    je     uc_name_nochange
+
+                    ; copy tempBuf -> names[ebx * Name_Size]
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Name_Size
+                    lea    edi, names[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+                    jmp    uc_updated
+
+    uc_name_nochange:
+                    mov    edx, OFFSET updateCancelMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    ; ----------------------
+    ; update phone
+    ; ----------------------
+    uc_update_phone:
+                    mov    edx, OFFSET PhPrompt
+                    call   WriteString
+
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Ph_Num_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_phone_nochange
+
+                    ; copy tempBuf -> nums[ebx * Ph_Num_Size]
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Ph_Num_Size
+                    lea    edi, nums[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+                    jmp    uc_updated
+
+    uc_phone_nochange:
+                    mov    edx, OFFSET updateCancelMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    ; ----------------------
+    ; update address
+    ; ----------------------
+    uc_update_addr:
+                    mov    edx, OFFSET AddrPrompt
+                    call   WriteString
+
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Addr_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_addr_nochange
+
+                    ; copy tempBuf -> addrs[ebx * Addr_Size]
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Addr_Size
+                    lea    edi, addrs[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+                    jmp    uc_updated
+
+    uc_addr_nochange:
+                    mov    edx, OFFSET updateCancelMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    ; ----------------------
+    ; update email
+    ; ----------------------
+    uc_update_email:
+                    mov    edx, OFFSET EmailPrompt
+                    call   WriteString
+
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Email_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_email_nochange
+
+                    ; copy tempBuf -> emails[ebx * Email_Size]
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Email_Size
+                    lea    edi, emails[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+                    jmp    uc_updated
+
+    uc_email_nochange:
+                    mov    edx, OFFSET updateCancelMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    ; ----------------------
+    ; update all fields (asks for each; empty input will keep the existing field)
+    ; ----------------------
+    uc_update_all:
+                    ; Name
+                    mov    edx, OFFSET NamePrompt
+                    call   WriteString
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Name_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_skip_name_copy
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Name_Size
+                    lea    edi, names[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+    uc_skip_name_copy:
+
+                    ; Phone
+                    mov    edx, OFFSET PhPrompt
+                    call   WriteString
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Ph_Num_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_skip_phone_copy
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Ph_Num_Size
+                    lea    edi, nums[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+    uc_skip_phone_copy:
+
+                    ; Address
+                    mov    edx, OFFSET AddrPrompt
+                    call   WriteString
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Addr_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_skip_addr_copy
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Addr_Size
+                    lea    edi, addrs[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+    uc_skip_addr_copy:
+
+                    ; Email
+                    mov    edx, OFFSET EmailPrompt
+                    call   WriteString
+                    lea    edi, tempBuf
+                    mov    edx, edi
+                    mov    eax, Email_Size - 1
+                    push   eax
+                    mov    ecx, eax
+                    call   ReadString
+                    pop    ecx
+                    mov    byte ptr [edi + eax], 0
+                    cmp    eax, 0
+                    je     uc_skip_email_copy
+                    cld
+                    mov    esi, OFFSET tempBuf
+                    mov    edi, ebx
+                    imul   edi, Email_Size
+                    lea    edi, emails[edi]
+                    mov    ecx, eax
+                    rep    movsb
+                    mov    byte ptr [edi + ecx], 0
+    uc_skip_email_copy:
+                    jmp    uc_updated
+
+    uc_updated:
+                    mov    edx, OFFSET updatedMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    uc_cancel:
+                    mov    edx, OFFSET updateCancelMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    uc_invalid_index:
+                    mov    edx, OFFSET invalidIndexMsg
+                    call   WriteString
+                    jmp    uc_done
+
+    uc_display_empty:
+                    mov    edx, OFFSET displayEmptyMsg
+                    call   WriteString
+                    jmp    uc_end
+
+    uc_done:
+                    ; fall through to restore and return
+                    nop
+
+    uc_end:
+                    popad
+                    ret
+UpdateContact ENDP
 
 END main
