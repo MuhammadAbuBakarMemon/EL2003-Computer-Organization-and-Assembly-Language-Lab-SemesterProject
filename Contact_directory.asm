@@ -8,6 +8,7 @@ Contact STRUCT
     phone       BYTE 15 DUP(?)    ; Ph_Num_Size
     address     BYTE 100 DUP(?)   ; Addr_Size
     email       BYTE 30 DUP(?)    ; Email_Size
+    c_label       BYTE ?           ; 0=None, 1=Friend, 2=Favourite
 Contact ENDS
 
 .data
@@ -69,6 +70,12 @@ Contact ENDS
     updatedMsg        DB        0Dh,0Ah,"-- Contact updated. --",0Dh,0Ah,0
     updateCancelMsg   DB        0Dh,0Ah,"-- Canceled. --",0Dh,0Ah,0
     invalidIndexMsg   DB        0Dh,0Ah,"Invalid contact number!",0Dh,0Ah,0
+
+    ; Label Feature
+    LabelPrompt       DB 0Dh,0Ah,"Choose label - 1: Friend, 2: Favourite, 0: None: ",0
+    FriendStr         DB " [Friend]",0
+    FavouriteStr      DB " [Favourite]",0
+    LabelInvalidMsg   DB 0Dh,0Ah,"Invalid label value!",0Dh,0Ah,0
 
 .code
                             _Wait  PROTO
@@ -210,6 +217,29 @@ AddContact PROC
                             call   ReadValidatedString
                             pop    edi
                             jc     add_cancelled
+
+    ; 5. Label Selection (NEW FEATURE)
+                            mov    edx, OFFSET LabelPrompt
+                            call   WriteString
+                            call   ReadInt
+                            cmp    eax, 0
+                            je     add_none_label
+                            cmp    eax, 1
+                            je     add_friend_label
+                            cmp    eax, 2
+                            je     add_fav_label
+                            mov    edx, OFFSET LabelInvalidMsg
+                            call   WriteString
+                            mov    eax, 0
+    add_none_label:
+                            mov    BYTE PTR [(Contact PTR [edi]).c_label], 0
+                            jmp    add_label_done
+    add_friend_label:
+                            mov    BYTE PTR [(Contact PTR [edi]).c_label], 1
+                            jmp    add_label_done
+    add_fav_label:
+                            mov    BYTE PTR [(Contact PTR [edi]).c_label], 2
+    add_label_done:
 
     ; Success
                             inc    Contact_Count
