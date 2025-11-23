@@ -3,58 +3,73 @@ INCLUDE c:\Users\Dell\.vscode\extensions\istareatscreens.masm-runner-0.9.1\nativ
 .data
 
     ; Constants
-    Max_Contacts      =  20
-    Name_Size         =  30
-    Ph_Num_Size       =  15
-    Addr_Size         =  50
-    Email_Size        =  30
+    Max_Contacts      =       20
+    Name_Size         =       30
+    Ph_Num_Size       =       15
+    Addr_Size         =       50
+    Email_Size        =       30
 
     ; storage (arrays of fixed-size records)
-    names             DB Max_Contacts * Name_Size DUP(?)
-    nums              DB Max_Contacts * Ph_Num_Size DUP(?)
-    addrs             DB Max_Contacts * Addr_Size DUP(?)
-    emails            DB Max_Contacts * Email_Size DUP(?)
-    Contact_Count     DD 0
+    names             DB      Max_Contacts * Name_Size DUP(?)
+    nums              DB      Max_Contacts * Ph_Num_Size DUP(?)
+    addrs             DB      Max_Contacts * Addr_Size DUP(?)
+    emails            DB      Max_Contacts * Email_Size DUP(?)
+    Contact_Count     DD      0
 
     ; temporary buffer for safe editing (largest field size)
-    tempBuf           DB Addr_Size DUP(?)
+    tempBuf           DB      Addr_Size DUP(?)
 
-    validationBuf     DB 100 DUP(?)
+    validationBuf     DB      100 DUP(?)
 
     ; prompts / messages
-    MenuHeader        DB " ----- Main Menu ----- ",0Dh,0Ah,0
-    MenuList          DB 0Dh,0Ah,"1. Add",0Dh,0Ah,"2. Update ",0Dh,0Ah,"3. Display",0Dh,0Ah,"4. Delete",0Dh,0Ah,"5. Search",0Dh,0Ah,"6. Exit Directory",0Dh,0Ah,0
-    MenuChoiceMsg     DB 0Dh,0Ah,"Enter your Choice: ",0
-    InvalidMenuChoice DB 0Dh,0Ah,"Invalid Choice!",0Dh,0Ah,0
+    MenuHeader        DB      " ----- Main Menu ----- ",0Dh,0Ah,0
+    MenuList          DB      0Dh,0Ah,"1. Add",0Dh,0Ah,"2. Update ",0Dh,0Ah,"3. Display",0Dh,0Ah,"4. Delete",0Dh,0Ah,"5. Search",0Dh,0Ah,"6. Exit Directory",0Dh,0Ah,0
+    MenuChoiceMsg     DB      0Dh,0Ah,"Enter your Choice: ",0
+    InvalidMenuChoice DB      0Dh,0Ah,"Invalid Choice!",0Dh,0Ah,0
 
-    NamePrompt        DB "Name: ",0
-    PhPrompt          DB "Phone Number: ",0
-    AddrPrompt        DB "Address: ",0
-    EmailPrompt       DB "Email: ",0
+    NamePrompt        DB      "Name: ",0
+    PhPrompt          DB      "Phone Number: ",0
+    AddrPrompt        DB      "Address: ",0
+    EmailPrompt       DB      "Email: ",0
 
-    addMsg            DB "Enter Following Details: ",0
-    addedMsg          DB 0Dh,0Ah,"-- Contact has been added to the directory. --",0Dh,0Ah,0
-    dirFullMsg        DB 0Dh,0Ah,"Contact Directory is Full! No more contacts can be added.",0Dh,0Ah,0
-    continueMsg       DB 0Dh,0Ah,"Press any key to continue...",0
+    addMsg            DB      "Enter Following Details: ",0
+    addedMsg          DB      0Dh,0Ah,"-- Contact has been added to the directory. --",0Dh,0Ah,0
+    dirFullMsg        DB      0Dh,0Ah,"Contact Directory is Full! No more contacts can be added.",0Dh,0Ah,0
+    continueMsg       DB      0Dh,0Ah,"Press any key to continue...",0
 
-    emptyInputMsg     DB 0Dh,0Ah,"Error: Input cannot be empty!",0Dh,0Ah,0
-    invalidPhone      DB 0Dh,0Ah,"Error: Phone must contain only digits, +, -!",0Dh,0Ah,0
-    invalidEmail      DB 0Dh,0Ah,"Error: Invalid Email Format", 0Dh,0Ah,0
-    retryPrompt       DB 0Dh,0Ah,"Press Enter to retry or 'C' to Cancel: ",0
+    emptyInputMsg     DB      0Dh,0Ah,"Error: Input cannot be empty!",0Dh,0Ah,0
+    invalidNameMsg    DB      0Dh,0Ah,"Error: Name must only contain letter and spaces",0Dh,0Ah,0
+    invalidPhoneMsg   DB      0Dh,0Ah,"Error: Phone must contain only digits, +, -!",0Dh,0Ah,0
+    invalidEmailMsg   DB      0Dh,0Ah,"Error: Invalid Email Format", 0Dh,0Ah,0
+    retryPrompt       DB      0Dh,0Ah,"Press Enter to retry or 'C' to Cancel: ",0
 
-    doneSortMsg       DB 0Dh,0Ah,"-- Contacts sorted successfully. --",0Dh,0Ah,0
+    doneSortMsg       DB      0Dh,0Ah,"-- Contacts sorted successfully. --",0Dh,0Ah,0
     
-    displayEmptyMsg   DB 0Dh,0Ah,"-- Contact Directory is empty. --",0Dh,0Ah,0
-    contactHeader     DB 0Dh,0Ah,"Contact #: ",0
-    contactDiv        DB 0Dh,0Ah,"------------------------------",0Dh,0Ah,0
+    displayEmptyMsg   DB      0Dh,0Ah,"-- Contact Directory is empty. --",0Dh,0Ah,0
+    contactHeader     DB      0Dh,0Ah,"Contact #: ",0
+    contactDiv        DB      0Dh,0Ah,"------------------------------",0Dh,0Ah,0
+
+    delPrompt         DB      0Dh,0Ah,"Enter Contact # to delete: ",0
+    delConfirmMsg     DB      0Dh,0Ah,"-- Contact deleted successfully. --",0Dh,0Ah,0
+    delErrEmpty       DB      0Dh,0Ah,"Error: Directory is empty.",0Dh,0Ah,0
+    delErrInvalid     DB      0Dh,0Ah,"Error: Invalid Contact Number.",0Dh,0Ah,0
+
+    searchPrompt      DB      0Dh,0Ah,"Enter Name to Search: ",0
+    searchFoundMsg    DB      0Dh,0Ah,"--- Contact Found ---",0Dh,0Ah,0
+    searchNotFoundMsg DB      0Dh,0Ah,"-- Contact not found in directory. --",0Dh,0Ah,0
+    autoSearchMsg     DB      0Dh,0Ah,"[Mode: Linear Auto Search]",0Dh,0Ah,0
+
+                      lowIdx  SDWORD ?
+                      highIdx SDWORD ?
+                      midIdx  SDWORD ?
 
     ; Update/Edit UI strings
-    UpdatePrompt      DB 0Dh,0Ah,"Enter contact number to update: ",0
-    UpdateMenuList    DB 0Dh,0Ah,"Update Options:",0Dh,0Ah,"1. Name",0Dh,0Ah,"2. Phone",0Dh,0Ah,"3. Address",0Dh,0Ah,"4. Email",0Dh,0Ah,"5. All Fields",0Dh,0Ah,"6. Cancel",0Dh,0Ah,0
-    UpdateChoiceMsg   DB 0Dh,0Ah,"Choose field to update: ",0
-    updatedMsg        DB 0Dh,0Ah,"-- Contact updated. --",0Dh,0Ah,0
-    updateCancelMsg   DB 0Dh,0Ah,"-- Update canceled. --",0Dh,0Ah,0
-    invalidIndexMsg   DB 0Dh,0Ah,"Invalid contact number!",0Dh,0Ah,0
+    UpdatePrompt      DB      0Dh,0Ah,"Enter contact number to update: ",0
+    UpdateMenuList    DB      0Dh,0Ah,"Update Options:",0Dh,0Ah,"1. Name",0Dh,0Ah,"2. Phone",0Dh,0Ah,"3. Address",0Dh,0Ah,"4. Email",0Dh,0Ah,"5. All Fields",0Dh,0Ah,"6. Cancel",0Dh,0Ah,0
+    UpdateChoiceMsg   DB      0Dh,0Ah,"Choose field to update: ",0
+    updatedMsg        DB      0Dh,0Ah,"-- Contact updated. --",0Dh,0Ah,0
+    updateCancelMsg   DB      0Dh,0Ah,"-- Update canceled. --",0Dh,0Ah,0
+    invalidIndexMsg   DB      0Dh,0Ah,"Invalid contact number!",0Dh,0Ah,0
 
 .code
 
@@ -100,13 +115,11 @@ main PROC
                           jmp    _refresh
 
     _delete:              
-    ; TODO: Implement a DeleteContact procedure
-                          call   writeDec
+                          call   DeleteContact
                           jmp    _refresh
 
     _search:              
-    ; TODO: Implement a SearchContact procedure
-                          call   writeDec
+                          call   SearchContact
                           jmp    _refresh
 
     _refresh:             
@@ -181,7 +194,7 @@ AddContact PROC
     
                           mov    edx, edi
                           mov    ecx, Addr_Size - 1
-                          xor    esi, esi                      
+                          xor    esi, esi
                           xor    edi, edi
                           call   ReadValidatedString
                           jc     add_cancelled
@@ -206,16 +219,19 @@ AddContact PROC
                           inc    Contact_Count
                           mov    edx, OFFSET addedMsg
                           call   WriteString
+                          call   SortContact
                           ret
 
     add_cancelled:        
                           mov    edx, OFFSET updateCancelMsg
                           call   WriteString
+                          call   SortContact
                           ret
 
     dirFull:              
                           mov    edx, OFFSET dirFullMsg
                           call   WriteString
+                          call   SortContact
                           ret
 AddContact ENDP
 
@@ -793,7 +809,7 @@ DisplayContacts ENDP
 
 ValidateNotEmpty PROC
                           push   esi
-                          mov    esi, edi
+                          mov    esi, edx
 
     skipSpaces:           
                           mov    al, [esi]
@@ -819,11 +835,11 @@ ValidateNotEmpty ENDP
 
 ValidateName Proc
                           push   esi
-                          mov    esi, edi
+                          mov    esi, edx
 
     nameLoop:             
                           mov    al, [esi]
-                          cmp    , 0
+                          cmp    al , 0
                           je     _valid
 
                           cmp    al, ' '
@@ -861,7 +877,7 @@ ValidateName ENDP
 ValidatePhone PROC
                           push   esi
                           push   ebx
-                          mov    esi, edi
+                          mov    esi, edx
                           xor    ebx, ebx
 
     phoneLoop:            
@@ -890,7 +906,7 @@ ValidatePhone PROC
 
     _next:                
                           inc    esi
-                          jmp    phone_loop
+                          jmp    phoneLoop
 
     checkPhoneCount:      
                           cmp    ebx, 3
@@ -1058,5 +1074,268 @@ ReadValidatedString PROC
                           ret
 ReadValidatedString ENDP
 
+DeleteContact PROC
+                          pushad
+
+                          mov    eax, Contact_Count
+                          cmp    eax, 0
+                          je     del_empty
+
+                          mov    edx, OFFSET delPrompt
+                          call   WriteString
+                          call   ReadInt
+
+                          cmp    eax, 1
+                          jl     del_invalid
+                          cmp    eax, Contact_Count
+                          jg     del_invalid
+
+                          dec    eax
+                          mov    ebx, eax
+    
+                          mov    ecx, Contact_Count
+                          dec    ecx
+                          sub    ecx, ebx
+    
+                          cmp    ecx, 0
+                          je     del_decrement_only
+
+                          push   ecx
+
+                          mov    eax, ebx
+                          imul   eax, Name_Size
+                          lea    edi, names[eax]
+    
+                          mov    esi, edi
+                          add    esi, Name_Size
+
+                          mov    eax, [esp]
+                          imul   eax, Name_Size
+                          mov    ecx, eax
+    
+                          cld
+                          rep    movsb
+
+                          mov    eax, ebx
+                          imul   eax, Ph_Num_Size
+                          lea    edi, nums[eax]
+                          mov    esi, edi
+                          add    esi, Ph_Num_Size
+    
+                          mov    eax, [esp]
+                          imul   eax, Ph_Num_Size
+                          mov    ecx, eax
+                          rep    movsb
+
+                          mov    eax, ebx
+                          imul   eax, Addr_Size
+                          lea    edi, addrs[eax]
+                          mov    esi, edi
+                          add    esi, Addr_Size
+    
+                          mov    eax, [esp]
+                          imul   eax, Addr_Size
+                          mov    ecx, eax
+                          rep    movsb
+
+                          mov    eax, ebx
+                          imul   eax, Email_Size
+                          lea    edi, emails[eax]
+                          mov    esi, edi
+                          add    esi, Email_Size
+    
+                          mov    eax, [esp]
+                          imul   eax, Email_Size
+                          mov    ecx, eax
+                          rep    movsb
+
+                          pop    ecx
+
+    del_decrement_only:   
+                          dec    Contact_Count
+    
+                          mov    edx, OFFSET delConfirmMsg
+                          call   WriteString
+                          jmp    del_exit
+
+    del_empty:            
+                          mov    edx, OFFSET delErrEmpty
+                          call   WriteString
+                          jmp    del_exit
+
+    del_invalid:          
+                          mov    edx, OFFSET delErrInvalid
+                          call   WriteString
+                          jmp    del_exit
+
+    del_exit:             
+                          popad
+                          ret
+DeleteContact ENDP
+
+SearchContact PROC
+                          call   Clrscr
+
+                          cmp    Contact_Count, 0
+                          je     sc_not_found
+
+                          mov    edx, OFFSET searchPrompt
+                          call   WriteString
+
+                          mov    edx, OFFSET tempBuf
+                          mov    ecx, Name_Size - 1
+                          call   ReadString
+                          mov    byte ptr [tempBuf + eax], 0
+
+                          cmp    eax, 0
+                          je     sc_exit
+
+                          mov    lowIdx, 0
+
+                          mov    eax, Contact_Count
+                          dec    eax
+                          mov    highIdx, eax
+
+    sc_loop:              
+                          mov    eax, lowIdx
+                          cmp    eax, highIdx
+                          jg     sc_not_found
+
+                          mov    eax, lowIdx
+                          add    eax, highIdx
+                          sar    eax, 1
+                          mov    midIdx, eax
+
+                          mov    eax, midIdx
+                          imul   eax, Name_Size
+                          lea    edi, names[eax]
+                          mov    esi, OFFSET tempBuf
+
+                          INVOKE Str_compare, esi, edi
+
+                          je     sc_found
+                          jb     sc_go_left
+                          ja     sc_go_right
+
+    sc_go_left:           
+                          mov    eax, midIdx
+                          dec    eax
+                          mov    highIdx, eax
+                          jmp    sc_loop
+
+    sc_go_right:          
+                          mov    eax, midIdx
+                          inc    eax
+                          mov    lowIdx, eax
+                          jmp    sc_loop
+
+    sc_found:             
+                          mov    edx, OFFSET searchFoundMsg
+                          call   WriteString
+                          mov    ebx, midIdx
+                          call   DisplaySingleContact
+                          jmp    sc_exit
+
+    sc_not_found:         
+                          mov    edx, OFFSET searchNotFoundMsg
+                          call   WriteString
+
+    sc_exit:              
+                          ret
+SearchContact ENDP
+
+AutoSearch PROC
+                          call   Clrscr
+
+                          cmp    Contact_Count, 0
+                          je     as_not_found
+
+                          mov    edx, OFFSET autoSearchMsg
+                          call   WriteString
+
+                          mov    edx, OFFSET searchPrompt
+                          call   WriteString
+
+                          mov    edx, OFFSET tempBuf
+                          mov    ecx, Name_Size - 1
+                          call   ReadString
+                          mov    byte ptr [tempBuf + eax], 0
+
+                          cmp    eax, 0
+                          je     as_exit
+
+                          mov    ecx, Contact_Count
+                          mov    ebx, 0
+
+    as_loop:              
+                          mov    eax, ebx
+                          imul   eax, Name_Size
+                          lea    edi, names[eax]
+                          mov    esi, OFFSET tempBuf
+
+                          push   ecx
+                          INVOKE Str_compare, esi, edi
+                          pop    ecx
+
+                          je     as_found
+
+                          inc    ebx
+                          loop   as_loop
+
+                          jmp    as_not_found
+
+    as_found:             
+                          mov    edx, OFFSET searchFoundMsg
+                          call   WriteString
+
+                          call   DisplaySingleContact
+                          jmp    as_exit
+
+    as_not_found:         
+                          mov    edx, OFFSET searchNotFoundMsg
+                          call   WriteString
+
+    as_exit:              
+                          ret
+AutoSearch ENDP
+
+DisplaySingleContact PROC
+                          mov    edx, OFFSET NamePrompt
+                          call   WriteString
+
+                          mov    eax, ebx
+                          imul   eax, Name_Size
+                          lea    edx, names[eax]
+                          call   WriteString
+                          call   Crlf
+
+                          mov    edx, OFFSET PhPrompt
+                          call   WriteString
+
+                          mov    eax, ebx
+                          imul   eax, Ph_Num_Size
+                          lea    edx, nums[eax]
+                          call   WriteString
+                          call   Crlf
+
+                          mov    edx, OFFSET AddrPrompt
+                          call   WriteString
+
+                          mov    eax, ebx
+                          imul   eax, Addr_Size
+                          lea    edx, addrs[eax]
+                          call   WriteString
+                          call   Crlf
+
+                          mov    edx, OFFSET EmailPrompt
+                          call   WriteString
+
+                          mov    eax, ebx
+                          imul   eax, Email_Size
+                          lea    edx, emails[eax]
+                          call   WriteString
+                          call   Crlf
+                          ret
+DisplaySingleContact ENDP
 
 END main
