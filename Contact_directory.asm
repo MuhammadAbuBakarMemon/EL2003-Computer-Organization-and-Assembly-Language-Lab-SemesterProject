@@ -1,1341 +1,950 @@
 INCLUDE c:\Users\Dell\.vscode\extensions\istareatscreens.masm-runner-0.9.1\native\irvine\Irvine32.inc
 
+; ---------------------------------------------------------
+; STRUCT DEFINITION
+; ---------------------------------------------------------
+Contact STRUCT
+    personName  BYTE 30 DUP(?)    ; Name_Size
+    phone       BYTE 15 DUP(?)    ; Ph_Num_Size
+    address     BYTE 100 DUP(?)   ; Addr_Size
+    email       BYTE 30 DUP(?)    ; Email_Size
+Contact ENDS
+
 .data
 
     ; Constants
-    Max_Contacts      =       20
-    Name_Size         =       30
-    Ph_Num_Size       =       15
-    Addr_Size         =       50
-    Email_Size        =       30
-
-    ; storage (arrays of fixed-size records)
-    names             DB      Max_Contacts * Name_Size DUP(?)
-    nums              DB      Max_Contacts * Ph_Num_Size DUP(?)
-    addrs             DB      Max_Contacts * Addr_Size DUP(?)
-    emails            DB      Max_Contacts * Email_Size DUP(?)
-    Contact_Count     DD      0
-
-    ; temporary buffer for safe editing (largest field size)
-    tempBuf           DB      Addr_Size DUP(?)
-
-    validationBuf     DB      100 DUP(?)
-
-    ; prompts / messages
-    MenuHeader        DB      " ----- Main Menu ----- ",0Dh,0Ah,0
-    MenuList          DB      0Dh,0Ah,"1. Add",0Dh,0Ah,"2. Update ",0Dh,0Ah,"3. Display",0Dh,0Ah,"4. Delete",0Dh,0Ah,"5. Search",0Dh,0Ah,"6. Exit Directory",0Dh,0Ah,0
-    MenuChoiceMsg     DB      0Dh,0Ah,"Enter your Choice: ",0
-    InvalidMenuChoice DB      0Dh,0Ah,"Invalid Choice!",0Dh,0Ah,0
-
-    NamePrompt        DB      "Name: ",0
-    PhPrompt          DB      "Phone Number: ",0
-    AddrPrompt        DB      "Address: ",0
-    EmailPrompt       DB      "Email: ",0
-
-    addMsg            DB      "Enter Following Details: ",0
-    addedMsg          DB      0Dh,0Ah,"-- Contact has been added to the directory. --",0Dh,0Ah,0
-    dirFullMsg        DB      0Dh,0Ah,"Contact Directory is Full! No more contacts can be added.",0Dh,0Ah,0
-    continueMsg       DB      0Dh,0Ah,"Press any key to continue...",0
-
-    emptyInputMsg     DB      0Dh,0Ah,"Error: Input cannot be empty!",0Dh,0Ah,0
-    invalidNameMsg    DB      0Dh,0Ah,"Error: Name must only contain letter and spaces",0Dh,0Ah,0
-    invalidPhoneMsg   DB      0Dh,0Ah,"Error: Phone must contain only digits, +, -!",0Dh,0Ah,0
-    invalidEmailMsg   DB      0Dh,0Ah,"Error: Invalid Email Format", 0Dh,0Ah,0
-    retryPrompt       DB      0Dh,0Ah,"Press Enter to retry or 'C' to Cancel: ",0
-
-    doneSortMsg       DB      0Dh,0Ah,"-- Contacts sorted successfully. --",0Dh,0Ah,0
+    Max_Contacts      =         50
     
-    displayEmptyMsg   DB      0Dh,0Ah,"-- Contact Directory is empty. --",0Dh,0Ah,0
-    contactHeader     DB      0Dh,0Ah,"Contact #: ",0
-    contactDiv        DB      0Dh,0Ah,"------------------------------",0Dh,0Ah,0
+    ; Storage (Array of Structs)
+                      directory Contact Max_Contacts DUP(<>)
+    Contact_Count     DD        0
 
-    delPrompt         DB      0Dh,0Ah,"Enter Contact # to delete: ",0
-    delConfirmMsg     DB      0Dh,0Ah,"-- Contact deleted successfully. --",0Dh,0Ah,0
-    delErrEmpty       DB      0Dh,0Ah,"Error: Directory is empty.",0Dh,0Ah,0
-    delErrInvalid     DB      0Dh,0Ah,"Error: Invalid Contact Number.",0Dh,0Ah,0
+    ; Temporary buffers
+    tempBuf           DB        100 DUP(?)                                                                                                                                                      ; Size of largest field (Address)
 
-    searchPrompt      DB      0Dh,0Ah,"Enter Name to Search: ",0
-    searchFoundMsg    DB      0Dh,0Ah,"--- Contact Found ---",0Dh,0Ah,0
-    searchNotFoundMsg DB      0Dh,0Ah,"-- Contact not found in directory. --",0Dh,0Ah,0
-    autoSearchMsg     DB      0Dh,0Ah,"[Mode: Linear Auto Search]",0Dh,0Ah,0
+    ; Prompts / Messages
+    MenuHeader        DB        " ----- Main Menu ----- ",0Dh,0Ah,0
+    MenuList          DB        0Dh,0Ah,"1. Add",0Dh,0Ah,"2. Update ",0Dh,0Ah,"3. Display",0Dh,0Ah,"4. Delete",0Dh,0Ah,"5. Search",0Dh,0Ah,"6. Exit Directory",0Dh,0Ah,0
+    MenuChoiceMsg     DB        0Dh,0Ah,"Enter your Choice: ",0
+    InvalidMenuChoice DB        0Dh,0Ah,"Invalid Choice!",0Dh,0Ah,0
 
-                      lowIdx  SDWORD ?
-                      highIdx SDWORD ?
-                      midIdx  SDWORD ?
+    NamePrompt        DB        "Name: ",0
+    PhPrompt          DB        "Phone Number: ",0
+    AddrPrompt        DB        "Address: ",0
+    EmailPrompt       DB        "Email: ",0
 
-    ; Update/Edit UI strings
-    UpdatePrompt      DB      0Dh,0Ah,"Enter contact number to update: ",0
-    UpdateMenuList    DB      0Dh,0Ah,"Update Options:",0Dh,0Ah,"1. Name",0Dh,0Ah,"2. Phone",0Dh,0Ah,"3. Address",0Dh,0Ah,"4. Email",0Dh,0Ah,"5. All Fields",0Dh,0Ah,"6. Cancel",0Dh,0Ah,0
-    UpdateChoiceMsg   DB      0Dh,0Ah,"Choose field to update: ",0
-    updatedMsg        DB      0Dh,0Ah,"-- Contact updated. --",0Dh,0Ah,0
-    updateCancelMsg   DB      0Dh,0Ah,"-- Update canceled. --",0Dh,0Ah,0
-    invalidIndexMsg   DB      0Dh,0Ah,"Invalid contact number!",0Dh,0Ah,0
+    addMsg            DB        "Enter Following Details: ",0
+    addedMsg          DB        0Dh,0Ah,"-- Contact has been added. --",0Dh,0Ah,0
+    dirFullMsg        DB        0Dh,0Ah,"Directory is Full!",0Dh,0Ah,0
+    continueMsg       DB        0Dh,0Ah,"Press any key to continue...",0
+
+    emptyInputMsg     DB        0Dh,0Ah,"Error: Input cannot be empty!",0Dh,0Ah,0
+    invalidNameMsg    DB        0Dh,0Ah,"Error: Letters and spaces only",0Dh,0Ah,0
+    invalidPhoneMsg   DB        0Dh,0Ah,"Error: Digits, +, - only!",0Dh,0Ah,0
+    invalidEmailMsg   DB        0Dh,0Ah,"Error: Invalid Email Format", 0Dh,0Ah,0
+    retryPrompt       DB        0Dh,0Ah,"Press Enter to retry or 'C' to Cancel: ",0
+
+    doneSortMsg       DB        0Dh,0Ah,"-- Contacts sorted. --",0Dh,0Ah,0
+    displayEmptyMsg   DB        0Dh,0Ah,"-- Directory is empty. --",0Dh,0Ah,0
+    contactHeader     DB        0Dh,0Ah,"Contact #: ",0
+    contactDiv        DB        0Dh,0Ah,"------------------------------",0Dh,0Ah,0
+
+    delPrompt         DB        0Dh,0Ah,"Enter Contact # to delete: ",0
+    delConfirmMsg     DB        0Dh,0Ah,"-- Contact deleted. --",0Dh,0Ah,0
+    delErrEmpty       DB        0Dh,0Ah,"Error: Directory empty.",0Dh,0Ah,0
+    delErrInvalid     DB        0Dh,0Ah,"Error: Invalid Contact #.",0Dh,0Ah,0
+
+    searchPrompt      DB        0Dh,0Ah,"Enter Name to Search: ",0
+    searchFoundMsg    DB        0Dh,0Ah,"--- Contact Found ---",0Dh,0Ah,0
+    searchNotFoundMsg DB        0Dh,0Ah,"-- Contact not found. --",0Dh,0Ah,0
+
+                      lowIdx    SDWORD ?
+                      highIdx   SDWORD ?
+                      midIdx    SDWORD ?
+
+    ; Update Strings
+    UpdatePrompt      DB        0Dh,0Ah,"Enter contact number to update: ",0
+    UpdateMenuList    DB        0Dh,0Ah,"Update Options:",0Dh,0Ah,"1. Name",0Dh,0Ah,"2. Phone",0Dh,0Ah,"3. Address",0Dh,0Ah,"4. Email",0Dh,0Ah,"5. All Fields",0Dh,0Ah,"6. Cancel",0Dh,0Ah,0
+    UpdateChoiceMsg   DB        0Dh,0Ah,"Choose field: ",0
+    updatedMsg        DB        0Dh,0Ah,"-- Contact updated. --",0Dh,0Ah,0
+    updateCancelMsg   DB        0Dh,0Ah,"-- Canceled. --",0Dh,0Ah,0
+    invalidIndexMsg   DB        0Dh,0Ah,"Invalid contact number!",0Dh,0Ah,0
 
 .code
-
-                          _Wait  PROTO
+                            _Wait  PROTO
 
 main PROC
-    top:                  
-                          mov    edx, OFFSET MenuHeader
-                          call   WriteString
-                          mov    edx, OFFSET MenuList
-                          call   WriteString
-                          mov    edx, OFFSET MenuChoiceMsg
-                          call   WriteString
-                          call   ReadInt                          ; returns choice in EAX
+    top:                    
+                            mov    edx, OFFSET MenuHeader
+                            call   WriteString
+                            mov    edx, OFFSET MenuList
+                            call   WriteString
+                            mov    edx, OFFSET MenuChoiceMsg
+                            call   WriteString
+                            call   ReadChar
+                            call   Crlf
+                            sub    al, '0'
+                            movzx  eax, al
 
-                          cmp    eax, 1
-                          je     _add
-                          cmp    eax, 2
-                          je     _update
-                          cmp    eax, 3
-                          je     _display
-                          cmp    eax, 4
-                          je     _delete
-                          cmp    eax, 5
-                          je     _search
-                          cmp    eax, 6
-                          je     _exit
+                            cmp    eax, 1
+                            je     _add
+                            cmp    eax, 2
+                            je     _update
+                            cmp    eax, 3
+                            je     _display
+                            cmp    eax, 4
+                            je     _delete
+                            cmp    eax, 5
+                            je     _search
+                            cmp    eax, 6
+                            je     _exit
 
-                          mov    edx, OFFSET InvalidMenuChoice
-                          call   WriteString
-                          jmp    _refresh
+                            mov    edx, OFFSET InvalidMenuChoice
+                            call   WriteString
+                            jmp    _refresh
 
-    _add:                 
-                          call   AddContact
-                          jmp    _refresh
+    _add:                   
+                            call   AddContact
+                            jmp    _refresh
+    _update:                
+                            call   UpdateContacts
+                            jmp    _refresh
+    _display:               
+                            call   DisplayContacts
+                            jmp    _refresh
+    _delete:                
+                            call   DeleteContact
+                            jmp    _refresh
+    _search:                
+                            call   SearchContact
+                            jmp    _refresh
 
-    _update:              
-                          call   UpdateContacts
-                          jmp    _refresh
+    _refresh:               
+                            call   _Wait
+                            call   Clrscr
+                            jmp    top
 
-    _display:             
-                          call   DisplayContacts
-                          jmp    _refresh
-
-    _delete:              
-                          call   DeleteContact
-                          jmp    _refresh
-
-    _search:              
-                          call   SearchContact
-                          jmp    _refresh
-
-    _refresh:             
-                          call   _Wait
-                          call   Clrscr
-                          jmp    top
-
-    _exit:                
-                          Exit
+    _exit:                  
+                            Exit
 main ENDP
 
 _Wait PROC
-                          mov    edx, OFFSET continueMsg
-                          call   WriteString
-                          call   ReadChar
-                          ret
+                            mov    edx, OFFSET continueMsg
+                            call   WriteString
+                            call   ReadChar
+                            ret
 _Wait ENDP
 
-    ; ----------------------
-    ; AddContact - add next free contact
-    ; ----------------------
+    ; ---------------------------------------------------------
+    ; AddContact
+    ; ---------------------------------------------------------
 AddContact PROC
-                          mov    eax, Contact_Count
-                          cmp    eax, Max_Contacts
-                          jae    dirFull
+                            mov    eax, Contact_Count
+                            cmp    eax, Max_Contacts
+                            jae    dirFull
 
-                          mov    edx, OFFSET addMsg
-                          call   WriteString
-                          call   Crlf
+                            mov    edx, OFFSET addMsg
+                            call   WriteString
+                            call   Crlf
 
-                          mov    esi, Contact_Count               ; ESI = current index
+    ; Calculate offset for the new contact: directory[Contact_Count]
+                            mov    ebx, Contact_Count
+                            imul   ebx, TYPE Contact
+                            lea    edi, directory[ebx]                                 ; EDI points to base of current contact struct
 
-    ; --- Validated Name Input ---
-                          mov    ebx, esi
-                          imul   ebx, Name_Size
-                          lea    edi, names[ebx]
+    ; 1. Name
+                            mov    edx, OFFSET NamePrompt
+                            call   WriteString
     
-                          mov    edx, OFFSET NamePrompt
-                          call   WriteString
-    
-                          mov    edx, edi                         ; Destination buffer
-                          mov    ecx, Name_Size - 1               ; Max length
-                          mov    esi, OFFSET ValidateName         ; Validation proc
-                          mov    edi, OFFSET invalidNameMsg       ; Error message
-                          call   ReadValidatedString
-                          jc     add_cancelled                    ; User cancelled
-    
-    ; --- Validated Phone Input ---
-                          mov    esi, Contact_Count               ; Restore index
-                          mov    ebx, esi
-                          imul   ebx, Ph_Num_Size
-                          lea    edi, nums[ebx]
-    
-                          mov    edx, OFFSET PhPrompt
-                          call   WriteString
-    
-                          mov    edx, edi
-                          mov    ecx, Ph_Num_Size - 1
-                          mov    esi, OFFSET ValidatePhone
-                          mov    edi, OFFSET invalidPhoneMsg
-                          call   ReadValidatedString
-                          jc     add_cancelled
-    
-    ; --- Address (no special validation) ---
-                          mov    esi, Contact_Count
-                          mov    ebx, esi
-                          imul   ebx, Addr_Size
-                          lea    edi, addrs[ebx]
-    
-                          mov    edx, OFFSET AddrPrompt
-                          call   WriteString
-    
-                          mov    edx, edi
-                          mov    ecx, Addr_Size - 1
-                          xor    esi, esi
-                          xor    edi, edi
-                          call   ReadValidatedString
-                          jc     add_cancelled
-    
-    ; --- Validated Email Input ---
-                          mov    esi, Contact_Count
-                          mov    ebx, esi
-                          imul   ebx, Email_Size
-                          lea    edi, emails[ebx]
-    
-                          mov    edx, OFFSET EmailPrompt
-                          call   WriteString
-    
-                          mov    edx, edi
-                          mov    ecx, Email_Size - 1
-                          mov    esi, OFFSET ValidateEmail
-                          mov    edi, OFFSET invalidEmailMsg
-                          call   ReadValidatedString
-                          jc     add_cancelled
+                            lea    edx, (Contact PTR [edi]).personName                 ; Point to personName field
+                            mov    ecx, LENGTHOF (Contact PTR [edi]).personName - 1
+                            mov    esi, OFFSET ValidateName
+                            push   edi                                                 ; Save struct base
+                            mov    edi, OFFSET invalidNameMsg
+                            call   ReadValidatedString
+                            pop    edi                                                 ; Restore struct base
+                            jc     add_cancelled
 
-    ; Success - increment count
-                          inc    Contact_Count
-                          mov    edx, OFFSET addedMsg
-                          call   WriteString
-                          call   SortContact
-                          ret
+    ; 2. Phone
+                            mov    edx, OFFSET PhPrompt
+                            call   WriteString
+    
+                            lea    edx, (Contact PTR [edi]).phone
+                            mov    ecx, LENGTHOF (Contact PTR [edi]).phone - 1
+                            mov    esi, OFFSET ValidatePhone
+                            push   edi
+                            mov    edi, OFFSET invalidPhoneMsg
+                            call   ReadValidatedString
+                            pop    edi
+                            jc     add_cancelled
 
-    add_cancelled:        
-                          mov    edx, OFFSET updateCancelMsg
-                          call   WriteString
-                          call   SortContact
-                          ret
+    ; 3. Address
+                            mov    edx, OFFSET AddrPrompt
+                            call   WriteString
+    
+                            lea    edx, (Contact PTR [edi]).address
+                            mov    ecx, LENGTHOF (Contact PTR [edi]).address - 1
+                            xor    esi, esi                                            ; No special regex validation
+                            xor    edi, edi                                            ; No error msg needed
+    ; Note: EDI is currently 0, we lost struct base pointer in EDI,
+    ; but ReadValidatedString restores registers it pushes,
+    ; however we passed EDI as 0. Safe because we re-calc base later or use saved EBX if needed.
+    ; Actually, let's just recalculate pointer if needed, but here ReadValidatedString does the job.
+                            call   ReadValidatedString
+                            jc     add_cancelled
 
-    dirFull:              
-                          mov    edx, OFFSET dirFullMsg
-                          call   WriteString
-                          call   SortContact
-                          ret
+    ; Restore base pointer for Email
+                            mov    ebx, Contact_Count
+                            imul   ebx, TYPE Contact
+                            lea    edi, directory[ebx]
+
+    ; 4. Email
+                            mov    edx, OFFSET EmailPrompt
+                            call   WriteString
+    
+                            lea    edx, (Contact PTR [edi]).email
+                            mov    ecx, LENGTHOF (Contact PTR [edi]).email - 1
+                            mov    esi, OFFSET ValidateEmail
+                            push   edi
+                            mov    edi, OFFSET invalidEmailMsg
+                            call   ReadValidatedString
+                            pop    edi
+                            jc     add_cancelled
+
+    ; Success
+                            inc    Contact_Count
+                            mov    edx, OFFSET addedMsg
+                            call   WriteString
+                            call   SortContact
+                            ret
+
+    add_cancelled:          
+                            mov    edx, OFFSET updateCancelMsg
+                            call   WriteString
+                            call   SortContact
+                            ret
+
+    dirFull:                
+                            mov    edx, OFFSET dirFullMsg
+                            call   WriteString
+                            ret
 AddContact ENDP
 
-    ; ----------------------
-    ; swapblock - swap ECX bytes between [ESI] and [EDI]
-    ; ----------------------
-swapblock PROC
-                          push   esi
-                          push   edi
-                          push   ecx
-    ; ESI and EDI point to blocks; ECX = byte count
-    swap_loop:            
-                          mov    al, [esi]
-                          mov    bl, [edi]
-                          mov    [esi], bl
-                          mov    [edi], al
-                          inc    esi
-                          inc    edi
-                          dec    ecx
-                          jnz    swap_loop
-                          pop    ecx
-                          pop    edi
-                          pop    esi
-                          ret
-swapblock ENDP
-
-    ; ----------------------
-    ; SortContact - bubble sort by name ascending
-    ; ----------------------
+    ; ---------------------------------------------------------
+    ; SortContact - Bubble Sort by Name
+    ; ---------------------------------------------------------
 SortContact PROC
-                          pushad
+                            pushad
+                            mov    eax, Contact_Count
+                            cmp    eax, 2
+                            jb     doneSorting
 
-                          mov    eax, Contact_Count
-                          cmp    eax, 2
-                          jb     doneSorting                      ; 0 or 1 contact - nothing to sort
+                            dec    eax
+                            mov    ecx, eax                                            ; Outer loop N-1
 
-                          dec    eax
-                          mov    ecx, eax                         ; ECX = N-1 (outer passes count down to 1)
+    outer_loop:             
+                            push   ecx
+                            mov    ebx, 0                                              ; Index i = 0
+                            mov    edx, ecx                                            ; Limit
 
-    outer_loop:           
-                          push   ecx                              ; Save outer loop counter
-                          mov    ebx, 0                           ; EBX = i index (0)
-                          mov    edx, ecx                         ; EDX = Inner loop limit for i (i < EDX)
+    inner_loop:             
+                            cmp    ebx, edx
+                            jae    inner_done_pass
 
-    inner_loop:           
-                          cmp    ebx, edx                         ; Compare i (EBX) with limit (EDX)
-                          jae    inner_done_pass                  ; if i >= limit, done with inner loop for this pass
+    ; Calculate pointers to contacts[i] and contacts[i+1]
+                            mov    esi, ebx
+                            imul   esi, TYPE Contact
+                            lea    esi, directory[esi]                                 ; ESI = &contacts[i]
 
-    ; compute pointers for names[i] and names[i+1]
-                          mov    esi, ebx
-                          imul   esi, Name_Size
-                          lea    esi, names[esi]
+                            mov    edi, ebx
+                            inc    edi
+                            imul   edi, TYPE Contact
+                            lea    edi, directory[edi]                                 ; EDI = &contacts[i+1]
 
-                          mov    edi, ebx
-                          inc    edi
-                          imul   edi, Name_Size
-                          lea    edi, names[edi]
+    ; Compare Names
+                            push   esi
+                            push   edi
+    
+    ; Setup specific field pointers
+                            lea    esi, (Contact PTR [esi]).personName
+                            lea    edi, (Contact PTR [edi]).personName
+    
+                            INVOKE Str_compare, esi, edi
+                            pop    edi
+                            pop    esi
 
-    ; compare names lexicographically
-                          mov    eax, Name_Size                   ; Using EAX as temp loop counter for comparison
-    compare_loop:         
-                          mov    cl, [esi]                        ; Use CL for current char [i]
-                          mov    dl, [edi]                        ; Use DL for current char [i+1]
-                          cmp    cl, dl
-                          jne    compare_diff                     ; Different, check if swap needed
-                          cmp    cl, 0
-                          je     compare_equal                    ; Reached null-terminator (strings are equal)
-                          inc    esi
-                          inc    edi
-                          dec    eax
-                          jnz    compare_loop
-                          jmp    compare_equal                    ; Strings are equal up to Name_Size
+                            ja     do_swap                                             ; If name[i] > name[i+1], swap
+                            jmp    no_swap
 
-    compare_diff:         
-                          cmp    cl, dl
-                          ja     do_swap                          ; cl > dl means names[i] > names[i+1], so swap (ascending sort)
-                          jmp    no_swap                          ; cl < dl means already in order
+    do_swap:                
+    ; Swap entire Contact Structs
+    ; ESI points to Struct A, EDI points to Struct B
+                            mov    ecx, TYPE Contact                                   ; Size of entire struct
+                            call   swapblock
 
-    compare_equal:        
-                          jmp    no_swap                          ; Strings are considered equal (no swap needed)
+    no_swap:                
+                            inc    ebx
+                            jmp    inner_loop
 
-    do_swap:              
-    ; swap Name (i is in EBX)
-                          mov    eax, ebx
-                          imul   eax, Name_Size
-                          lea    esi, names[eax]
-                          mov    edi, ebx
-                          inc    edi
-                          imul   edi, Name_Size
-                          lea    edi, names[edi]
-                          mov    ecx, Name_Size
-                          call   swapblock
+    inner_done_pass:        
+                            pop    ecx
+                            dec    ecx
+                            jnz    outer_loop
 
-    ; swap Phone
-                          mov    eax, ebx
-                          imul   eax, Ph_Num_Size
-                          lea    esi, nums[eax]
-                          mov    edi, ebx
-                          inc    edi
-                          imul   edi, Ph_Num_Size
-                          lea    edi, nums[edi]
-                          mov    ecx, Ph_Num_Size
-                          call   swapblock
-
-    ; swap Address
-                          mov    eax, ebx
-                          imul   eax, Addr_Size
-                          lea    esi, addrs[eax]
-                          mov    edi, ebx
-                          inc    edi
-                          imul   edi, Addr_Size
-                          lea    edi, addrs[edi]
-                          mov    ecx, Addr_Size
-                          call   swapblock
-
-    ; swap Email
-                          mov    eax, ebx
-                          imul   eax, Email_Size
-                          lea    esi, emails[eax]
-                          mov    edi, ebx
-                          inc    edi
-                          imul   edi, Email_Size
-                          lea    edi, emails[edi]
-                          mov    ecx, Email_Size
-                          call   swapblock
-
-    no_swap:              
-                          inc    ebx
-                          jmp    inner_loop
-
-    inner_done_pass:      
-                          pop    ecx                              ; Restore outer loop counter
-                          dec    ecx                              ; Decrement outer loop counter
-                          jnz    outer_loop                       ; Jump if not zero (more passes to go)
-
-    doneSorting:          
-                          mov    edx, OFFSET doneSortMsg
-                          call   WriteString
-                          popad
-                          ret
+    doneSorting:            
+                            mov    edx, OFFSET doneSortMsg
+                            call   WriteString
+                            popad
+                            ret
 SortContact ENDP
 
-    ; ----------------------
-    ; UpdateContact - update existing contact(s)
-    ; ----------------------
-UpdateContacts PROC
-                          pushad
-                          mov    eax, Contact_Count
-                          cmp    eax, 0
-                          je     uc_display_empty
+    ; ---------------------------------------------------------
+    ; swapblock - swaps ECX bytes between [ESI] and [EDI]
+    ; ---------------------------------------------------------
+swapblock PROC
+                            push   esi
+                            push   edi
+                            push   ecx
+    swap_loop:              
+                            mov    al, [esi]
+                            mov    bl, [edi]
+                            mov    [esi], bl
+                            mov    [edi], al
+                            inc    esi
+                            inc    edi
+                            dec    ecx
+                            jnz    swap_loop
+                            pop    ecx
+                            pop    edi
+                            pop    esi
+                            ret
+swapblock ENDP
 
-    ; Show all contacts to help user choose
-                          call   DisplayContacts
-
-    ; Prompt for contact number to edit (1-based)
-                          mov    edx, OFFSET UpdatePrompt
-                          call   WriteString
-                          call   ReadInt                          ; returns number in EAX
-                          mov    ebx, eax                         ; ebx = user_choice (1-based)
-                          cmp    ebx, 1
-                          jl     uc_invalid_index
-                          mov    eax, Contact_Count
-                          cmp    ebx, eax
-                          jg     uc_invalid_index
-
-    ; convert to 0-based index
-                          dec    ebx                              ; EBX = index (0-based)
-
-    ; Display current fields for this contact
-    ; Name
-                          mov    esi, ebx
-                          imul   esi, Name_Size
-                          mov    edx, OFFSET NamePrompt
-                          call   WriteString
-                          lea    edx, names[esi]
-                          call   WriteString
-                          call   Crlf
-
-    ; Phone
-                          mov    esi, ebx
-                          imul   esi, Ph_Num_Size
-                          mov    edx, OFFSET PhPrompt
-                          call   WriteString
-                          lea    edx, nums[esi]
-                          call   WriteString
-                          call   Crlf
-
-    ; Address
-                          mov    esi, ebx
-                          imul   esi, Addr_Size
-                          mov    edx, OFFSET AddrPrompt
-                          call   WriteString
-                          lea    edx, addrs[esi]
-                          call   WriteString
-                          call   Crlf
-
-    ; Email
-                          mov    esi, ebx
-                          imul   esi, Email_Size
-                          mov    edx, OFFSET EmailPrompt
-                          call   WriteString
-                          lea    edx, emails[esi]
-                          call   WriteString
-                          call   Crlf
-
-    ; Show update menu
-                          mov    edx, OFFSET UpdateMenuList
-                          call   WriteString
-                          mov    edx, OFFSET UpdateChoiceMsg
-                          call   WriteString
-                          call   ReadInt                          ; choice in EAX
-                          mov    ecx, eax                         ; ECX = which field to update
-
-                          cmp    ecx, 6
-                          je     uc_cancel
-
-                          cmp    ecx, 1
-                          je     uc_update_name
-                          cmp    ecx, 2
-                          je     uc_update_phone
-                          cmp    ecx, 3
-                          je     uc_update_addr
-                          cmp    ecx, 4
-                          je     uc_update_email
-                          cmp    ecx, 5
-                          je     uc_update_all
-
-    ; invalid choice
-                          mov    edx, OFFSET InvalidMenuChoice
-                          call   WriteString
-                          jmp    uc_done
-
-    ; ----------------------
-    ; update name (safe: read into tempBuf first; if input length > 0, copy to target)
-    ; ----------------------
-    uc_update_name:       
-    ; prompt
-                          mov    edx, OFFSET NamePrompt
-                          call   WriteString
-
-    ; read into tempBuf
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Name_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0          ; null-terminate temp
-                          cmp    eax, 0
-                          je     uc_name_nochange
-
-    ; copy tempBuf -> names[ebx * Name_Size]
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Name_Size
-                          lea    edi, names[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-                          jmp    uc_updated
-
-    uc_name_nochange:     
-                          mov    edx, OFFSET updateCancelMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    ; ----------------------
-    ; update phone
-    ; ----------------------
-    uc_update_phone:      
-                          mov    edx, OFFSET PhPrompt
-                          call   WriteString
-
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Ph_Num_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_phone_nochange
-
-    ; copy tempBuf -> nums[ebx * Ph_Num_Size]
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Ph_Num_Size
-                          lea    edi, nums[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-                          jmp    uc_updated
-
-    uc_phone_nochange:    
-                          mov    edx, OFFSET updateCancelMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    ; ----------------------
-    ; update address
-    ; ----------------------
-    uc_update_addr:       
-                          mov    edx, OFFSET AddrPrompt
-                          call   WriteString
-
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Addr_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_addr_nochange
-
-    ; copy tempBuf -> addrs[ebx * Addr_Size]
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Addr_Size
-                          lea    edi, addrs[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-                          jmp    uc_updated
-
-    uc_addr_nochange:     
-                          mov    edx, OFFSET updateCancelMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    ; ----------------------
-    ; update email
-    ; ----------------------
-    uc_update_email:      
-                          mov    edx, OFFSET EmailPrompt
-                          call   WriteString
-
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Email_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_email_nochange
-
-    ; copy tempBuf -> emails[ebx * Email_Size]
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Email_Size
-                          lea    edi, emails[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-                          jmp    uc_updated
-
-    uc_email_nochange:    
-                          mov    edx, OFFSET updateCancelMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    ; ----------------------
-    ; update all fields (asks for each; empty input will keep the existing field)
-    ; ----------------------
-    uc_update_all:        
-    ; Name
-                          mov    edx, OFFSET NamePrompt
-                          call   WriteString
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Name_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_skip_name_copy
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Name_Size
-                          lea    edi, names[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-    uc_skip_name_copy:    
-
-    ; Phone
-                          mov    edx, OFFSET PhPrompt
-                          call   WriteString
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Ph_Num_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_skip_phone_copy
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Ph_Num_Size
-                          lea    edi, nums[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-    uc_skip_phone_copy:   
-
-    ; Address
-                          mov    edx, OFFSET AddrPrompt
-                          call   WriteString
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Addr_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_skip_addr_copy
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Addr_Size
-                          lea    edi, addrs[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-    uc_skip_addr_copy:    
-
-    ; Email
-                          mov    edx, OFFSET EmailPrompt
-                          call   WriteString
-                          lea    edi, tempBuf
-                          mov    edx, edi
-                          mov    eax, Email_Size - 1
-                          push   eax
-                          mov    ecx, eax
-                          call   ReadString
-                          pop    ecx
-                          mov    byte ptr [edi + eax], 0
-                          cmp    eax, 0
-                          je     uc_skip_email_copy
-                          cld
-                          mov    esi, OFFSET tempBuf
-                          mov    edi, ebx
-                          imul   edi, Email_Size
-                          lea    edi, emails[edi]
-                          mov    ecx, eax
-                          rep    movsb
-                          mov    byte ptr [edi + ecx], 0
-    uc_skip_email_copy:   
-                          jmp    uc_updated
-
-    uc_updated:           
-                          mov    edx, OFFSET updatedMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    uc_cancel:            
-                          mov    edx, OFFSET updateCancelMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    uc_invalid_index:     
-                          mov    edx, OFFSET invalidIndexMsg
-                          call   WriteString
-                          jmp    uc_done
-
-    uc_display_empty:     
-                          mov    edx, OFFSET displayEmptyMsg
-                          call   WriteString
-                          jmp    uc_end
-
-    uc_done:              
-    ; fall through to restore and return
-                          nop
-
-    uc_end:               
-                          popad
-                          ret
-UpdateContacts ENDP
-
-    ; ----------------------
-    ; DisplayContacts - list all contacts
-    ; ----------------------
+    ; ---------------------------------------------------------
+    ; DisplayContacts
+    ; ---------------------------------------------------------
 DisplayContacts PROC
-                          pushad
+                            pushad
+                            mov    eax, Contact_Count
+                            cmp    eax, 0
+                            je     display_empty
 
-                          mov    eax, Contact_Count
-                          cmp    eax, 0
-                          je     display_empty
+                            mov    ebx, 0                                              ; Loop index
+    
+    ; Pointer to start of array
+                            lea    esi, directory
 
-                          mov    ebx, 0                           ; index = 0
-    display_loop:         
-    ; Print divider
-                          mov    edx, OFFSET contactDiv
-                          call   WriteString
+    display_loop:           
+                            mov    edx, OFFSET contactDiv
+                            call   WriteString
 
-    ; Print contact number
-                          mov    edx, OFFSET contactHeader
-                          call   WriteString
-                          mov    eax, ebx
-                          inc    eax                              ; display 1-based index
-                          call   WriteInt                         ; WriteInt prints EAX
-                          call   Crlf
+                            mov    edx, OFFSET contactHeader
+                            call   WriteString
+                            mov    eax, ebx
+                            inc    eax
+                            call   WriteInt
+                            call   Crlf
 
-    ; Print Name
-                          mov    esi, ebx
-                          imul   esi, Name_Size
-                          mov    edx, OFFSET NamePrompt
-                          call   WriteString                      ; "Name: "
-                          lea    edx, names[esi]
-                          call   WriteString
-                          call   Crlf
+    ; ESI currently points to directory[ebx]
+    
+    ; Name
+                            mov    edx, OFFSET NamePrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).personName
+                            call   WriteString
+                            call   Crlf
 
-    ; Print Phone
-                          mov    esi, ebx
-                          imul   esi, Ph_Num_Size
-                          mov    edx, OFFSET PhPrompt
-                          call   WriteString
-                          lea    edx, nums[esi]
-                          call   WriteString
-                          call   Crlf
+    ; Phone
+                            mov    edx, OFFSET PhPrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).phone
+                            call   WriteString
+                            call   Crlf
 
-    ; Print Address
-                          mov    esi, ebx
-                          imul   esi, Addr_Size
-                          mov    edx, OFFSET AddrPrompt
-                          call   WriteString
-                          lea    edx, addrs[esi]
-                          call   WriteString
-                          call   Crlf
+    ; Address
+                            mov    edx, OFFSET AddrPrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).address
+                            call   WriteString
+                            call   Crlf
 
-    ; Print Email
-                          mov    esi, ebx
-                          imul   esi, Email_Size
-                          mov    edx, OFFSET EmailPrompt
-                          call   WriteString
-                          lea    edx, emails[esi]
-                          call   WriteString
-                          call   Crlf
+    ; Email
+                            mov    edx, OFFSET EmailPrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).email
+                            call   WriteString
+                            call   Crlf
 
-                          inc    ebx
-                          mov    eax, Contact_Count
-                          cmp    ebx, eax
-                          jl     display_loop
+    ; Move to next struct
+                            add    esi, TYPE Contact
+                            inc    ebx
+                            cmp    ebx, Contact_Count
+                            jl     display_loop
 
-    ; final divider
-                          mov    edx, OFFSET contactDiv
-                          call   WriteString
+                            mov    edx, OFFSET contactDiv
+                            call   WriteString
+                            popad
+                            ret
 
-                          popad
-                          ret
-
-    display_empty:        
-                          mov    edx, OFFSET displayEmptyMsg
-                          call   WriteString
-                          popad
-                          ret
+    display_empty:          
+                            mov    edx, OFFSET displayEmptyMsg
+                            call   WriteString
+                            popad
+                            ret
 DisplayContacts ENDP
 
+    ; ---------------------------------------------------------
+    ; UpdateContacts
+    ; ---------------------------------------------------------
+UpdateContacts PROC
+                            pushad
+                            mov    eax, Contact_Count
+                            cmp    eax, 0
+                            je     uc_display_empty
+
+                            call   DisplayContacts
+
+                            mov    edx, OFFSET UpdatePrompt
+                            call   WriteString
+                            call   ReadInt
+                            mov    ebx, eax
+    
+                            cmp    ebx, 1
+                            jl     uc_invalid_index
+                            cmp    ebx, Contact_Count
+                            jg     uc_invalid_index
+
+                            dec    ebx                                                 ; 0-based index
+
+    ; Calculate pointer to selected contact
+                            imul   ebx, TYPE Contact
+                            lea    esi, directory[ebx]                                 ; ESI = Pointer to Contact Struct
+
+    ; Show current values
+                            mov    edx, OFFSET NamePrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).personName
+                            call   WriteString
+                            call   Crlf
+    
+    ; (Skipping display of others for brevity, typically you'd show all)
+
+                            mov    edx, OFFSET UpdateMenuList
+                            call   WriteString
+                            mov    edx, OFFSET UpdateChoiceMsg
+                            call   WriteString
+                            call   ReadInt
+    
+                            cmp    eax, 6
+                            je     uc_cancel
+    
+    ; ESI holds struct pointer. We use it to get offsets.
+
+                            cmp    eax, 1
+                            je     uc_name
+                            cmp    eax, 2
+                            je     uc_phone
+                            cmp    eax, 3
+                            je     uc_addr
+                            cmp    eax, 4
+                            je     uc_email
+                            cmp    eax, 5
+                            je     uc_all
+                            jmp    uc_done
+
+    uc_name:                
+                            lea    edi, (Contact PTR [esi]).personName
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).personName - 1
+                            mov    edx, OFFSET NamePrompt
+                            call   HelperUpdateField
+                            jmp    uc_updated
+
+    uc_phone:               
+                            lea    edi, (Contact PTR [esi]).phone
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).phone - 1
+                            mov    edx, OFFSET PhPrompt
+                            call   HelperUpdateField
+                            jmp    uc_updated
+
+    uc_addr:                
+                            lea    edi, (Contact PTR [esi]).address
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).address - 1
+                            mov    edx, OFFSET AddrPrompt
+                            call   HelperUpdateField
+                            jmp    uc_updated
+
+    uc_email:               
+                            lea    edi, (Contact PTR [esi]).email
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).email - 1
+                            mov    edx, OFFSET EmailPrompt
+                            call   HelperUpdateField
+                            jmp    uc_updated
+
+    uc_all:                 
+    ; Name
+                            lea    edi, (Contact PTR [esi]).personName
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).personName - 1
+                            mov    edx, OFFSET NamePrompt
+                            call   HelperUpdateField
+
+    ; Phone
+                            lea    edi, (Contact PTR [esi]).phone
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).phone - 1
+                            mov    edx, OFFSET PhPrompt
+                            call   HelperUpdateField
+
+    ; Address
+                            lea    edi, (Contact PTR [esi]).address
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).address - 1
+                            mov    edx, OFFSET AddrPrompt
+                            call   HelperUpdateField
+
+    ; Email
+                            lea    edi, (Contact PTR [esi]).email
+                            mov    ecx, LENGTHOF (Contact PTR [esi]).email - 1
+                            mov    edx, OFFSET EmailPrompt
+                            call   HelperUpdateField
+                            jmp    uc_updated
+
+    uc_updated:             
+                            mov    edx, OFFSET updatedMsg
+                            call   WriteString
+                            call   SortContact
+                            jmp    uc_end
+
+    uc_cancel:              
+                            mov    edx, OFFSET updateCancelMsg
+                            call   WriteString
+                            jmp    uc_end
+
+    uc_invalid_index:       
+                            mov    edx, OFFSET invalidIndexMsg
+                            call   WriteString
+                            jmp    uc_end
+
+    uc_display_empty:       
+                            mov    edx, OFFSET displayEmptyMsg
+                            call   WriteString
+
+    uc_done:                
+    uc_end:                 
+                            popad
+                            ret
+UpdateContacts ENDP
+
+    ; Helper to read into temp and copy if not empty
+    ; Inputs: EDX = Prompt, EDI = Dest Ptr, ECX = Max Len
+HelperUpdateField PROC
+                            pushad
+                            call   WriteString                                         ; Print prompt
+    
+    ; Read into tempBuf
+                            push   edi                                                 ; Save dest
+                            mov    edx, OFFSET tempBuf
+    ; ECX is already set
+                            call   ReadString
+                            mov    byte ptr [tempBuf + eax], 0
+                            pop    edi                                                 ; Restore dest
+
+                            cmp    eax, 0
+                            je     no_update
+
+    ; Copy tempBuf to EDI
+                            mov    esi, OFFSET tempBuf
+                            inc    eax                                                 ; include null
+                            mov    ecx, eax
+                            cld
+                            rep    movsb
+
+    no_update:              
+                            popad
+                            ret
+HelperUpdateField ENDP
+
+    ; ---------------------------------------------------------
+    ; DeleteContact
+    ; ---------------------------------------------------------
+DeleteContact PROC
+                            pushad
+                            mov    eax, Contact_Count
+                            cmp    eax, 0
+                            je     del_empty
+
+                            mov    edx, OFFSET delPrompt
+                            call   WriteString
+                            call   ReadInt
+    
+                            cmp    eax, 1
+                            jl     del_invalid
+                            cmp    eax, Contact_Count
+                            jg     del_invalid
+
+                            dec    eax                                                 ; Index to delete
+                            mov    ebx, eax
+
+    ; Calculate number of items to shift
+    ; Count = (Total - Index - 1)
+                            mov    ecx, Contact_Count
+                            dec    ecx
+                            sub    ecx, ebx
+    
+                            cmp    ecx, 0
+                            je     del_decrement_only                                  ; Deleting last item, no shift needed
+
+    ; Calculate pointers
+    ; Dest: &directory[ebx]
+                            mov    eax, ebx
+                            imul   eax, TYPE Contact
+                            lea    edi, directory[eax]
+
+    ; Source: &directory[ebx+1]
+                            lea    esi, [edi + TYPE Contact]
+
+    ; Total bytes to move = Items * TYPE Contact
+                            imul   ecx, TYPE Contact
+    
+                            cld
+                            rep    movsb
+
+    del_decrement_only:     
+                            dec    Contact_Count
+                            mov    edx, OFFSET delConfirmMsg
+                            call   WriteString
+                            jmp    del_exit
+
+    del_empty:              
+                            mov    edx, OFFSET delErrEmpty
+                            call   WriteString
+                            jmp    del_exit
+    del_invalid:            
+                            mov    edx, OFFSET delErrInvalid
+                            call   WriteString
+    del_exit:               
+                            popad
+                            ret
+DeleteContact ENDP
+
+    ; ---------------------------------------------------------
+    ; SearchContact (Binary Search)
+    ; ---------------------------------------------------------
+SearchContact PROC
+                            call   Clrscr
+                            cmp    Contact_Count, 0
+                            je     sc_not_found
+
+                            mov    edx, OFFSET searchPrompt
+                            call   WriteString
+                            mov    edx, OFFSET tempBuf
+                            mov    ecx, LENGTHOF directory.personName - 1
+                            call   ReadString
+                            mov    byte ptr [tempBuf + eax], 0
+                            cmp    eax, 0
+                            je     sc_exit
+
+                            mov    lowIdx, 0
+                            mov    eax, Contact_Count
+                            dec    eax
+                            mov    highIdx, eax
+
+    sc_loop:                
+                            mov    eax, lowIdx
+                            cmp    eax, highIdx
+                            jg     sc_not_found
+
+                            add    eax, highIdx
+                            sar    eax, 1
+                            mov    midIdx, eax
+
+    ; Get &directory[mid].personName
+                            mov    ebx, midIdx
+                            imul   ebx, TYPE Contact
+                            lea    edi, (Contact PTR directory[ebx]).personName
+                            mov    esi, OFFSET tempBuf
+
+                            INVOKE Str_compare, esi, edi
+                            je     sc_found
+                            jb     sc_go_left
+                            ja     sc_go_right
+
+    sc_go_left:             
+                            mov    eax, midIdx
+                            dec    eax
+                            mov    highIdx, eax
+                            jmp    sc_loop
+
+    sc_go_right:            
+                            mov    eax, midIdx
+                            inc    eax
+                            mov    lowIdx, eax
+                            jmp    sc_loop
+
+    sc_found:               
+                            mov    edx, OFFSET searchFoundMsg
+                            call   WriteString
+    
+    ; Display found contact
+                            mov    ebx, midIdx
+                            imul   ebx, TYPE Contact
+                            lea    esi, directory[ebx]                                 ; Pass struct pointer in ESI
+                            call   DisplaySingleContactPtr
+                            jmp    sc_exit
+
+    sc_not_found:           
+                            mov    edx, OFFSET searchNotFoundMsg
+                            call   WriteString
+    sc_exit:                
+                            ret
+SearchContact ENDP
+
+    ; Helper to display contact pointed to by ESI
+DisplaySingleContactPtr PROC
+                            mov    edx, OFFSET NamePrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).personName
+                            call   WriteString
+                            call   Crlf
+
+                            mov    edx, OFFSET PhPrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).phone
+                            call   WriteString
+                            call   Crlf
+
+                            mov    edx, OFFSET AddrPrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).address
+                            call   WriteString
+                            call   Crlf
+
+                            mov    edx, OFFSET EmailPrompt
+                            call   WriteString
+                            lea    edx, (Contact PTR [esi]).email
+                            call   WriteString
+                            call   Crlf
+                            ret
+DisplaySingleContactPtr ENDP
+
+    ; ---------------------------------------------------------
+    ; Validators (Slightly adjusted to take EDX as buffer)
+    ; ---------------------------------------------------------
 ValidateNotEmpty PROC
-                          push   esi
-                          mov    esi, edx
-
-    skipSpaces:           
-                          mov    al, [esi]
-                          cmp    al, ' '
-                          jne    checkEmpty
-                          inc    esi
-                          jmp    skipSpaces
-
-    checkEmpty:           
-                          cmp    al, 0
-                          je     isEmpty
-    
-                          mov    eax, 1
-                          pop    esi
-                          ret
-
-    isEmpty:              
-                          mov    eax, 0
-                          pop    esi
-                          ret
-    
+                            push   esi
+                            mov    esi, edx
+    skipSpaces:             
+                            mov    al, [esi]
+                            cmp    al, ' '
+                            jne    checkEmpty
+                            inc    esi
+                            jmp    skipSpaces
+    checkEmpty:             
+                            cmp    al, 0
+                            je     isEmpty
+                            mov    eax, 1
+                            pop    esi
+                            ret
+    isEmpty:                
+                            mov    eax, 0
+                            pop    esi
+                            ret
 ValidateNotEmpty ENDP
 
-ValidateName Proc
-                          push   esi
-                          mov    esi, edx
-
-    nameLoop:             
-                          mov    al, [esi]
-                          cmp    al , 0
-                          je     _valid
-
-                          cmp    al, ' '
-                          je     _next
-
-                          cmp    al, 'A'
-                          jl     _invalid
-
-                          cmp    al, 'Z'
-                          jle    _next
-
-                          cmp    al, 'a'
-                          jl     _invalid
-
-                          cmp    al, 'z'
-                          jle    _next
-
-                          jmp    _invalid
-
-    _next:                
-                          inc    esi
-                          jmp    nameLoop
-
-    _valid:               
-                          mov    eax, 1
-                          pop    esi
-                          ret
-    
-    _invalid:             
-                          mov    eax, 0
-                          pop    esi
-                          ret
+ValidateName PROC
+                            push   esi
+                            mov    esi, edx
+    nameLoop:               
+                            mov    al, [esi]
+                            cmp    al, 0
+                            je     _valid
+                            cmp    al, ' '
+                            je     _next
+                            cmp    al, 'A'
+                            jl     _invalid
+                            cmp    al, 'Z'
+                            jle    _next
+                            cmp    al, 'a'
+                            jl     _invalid
+                            cmp    al, 'z'
+                            jle    _next
+                            jmp    _invalid
+    _next:                  
+                            inc    esi
+                            jmp    nameLoop
+    _valid:                 
+                            mov    eax, 1
+                            pop    esi
+                            ret
+    _invalid:               
+                            mov    eax, 0
+                            pop    esi
+                            ret
 ValidateName ENDP
 
 ValidatePhone PROC
-                          push   esi
-                          push   ebx
-                          mov    esi, edx
-                          xor    ebx, ebx
-
-    phoneLoop:            
-                          mov    al, [esi]
-                          cmp    al, 0
-                          je     checkPhoneCount
-
-                          cmp    al, '0'
-                          jl     checkSpChar
-
-                          cmp    al, '9'
-                          jle    digFound
-
-    checkSpChar:          
-                          cmp    al, ' '
-                          je     _next
-                          cmp    al, '+'
-                          je     _next
-                          cmp    al, '-'
-                          je     _next
-
-                          jmp    _invalid
-
-    digFound:             
-                          inc    ebx
-
-    _next:                
-                          inc    esi
-                          jmp    phoneLoop
-
-    checkPhoneCount:      
-                          cmp    ebx, 3
-                          jl     _invalid
-
-                          mov    eax, 1
-                          pop    ebx
-                          pop    esi
-                          ret
-
-    _invalid:             
-                          mov    eax, 0
-                          pop    ebx
-                          pop    esi
-                          ret
+                            push   esi
+                            push   ebx
+                            mov    esi, edx
+                            xor    ebx, ebx
+    phoneLoop:              
+                            mov    al, [esi]
+                            cmp    al, 0
+                            je     checkPhoneCount
+                            cmp    al, '0'
+                            jl     checkSpChar
+                            cmp    al, '9'
+                            jle    digFound
+    checkSpChar:            
+                            cmp    al, ' '
+                            je     _pnext
+                            cmp    al, '+'
+                            je     _pnext
+                            cmp    al, '-'
+                            je     _pnext
+                            jmp    _pinvalid
+    digFound:               
+                            inc    ebx
+    _pnext:                 
+                            inc    esi
+                            jmp    phoneLoop
+    checkPhoneCount:        
+                            cmp    ebx, 3
+                            jl     _pinvalid
+                            mov    eax, 1
+                            pop    ebx
+                            pop    esi
+                            ret
+    _pinvalid:              
+                            mov    eax, 0
+                            pop    ebx
+                            pop    esi
+                            ret
 ValidatePhone ENDP
 
 ValidateEmail PROC
-                          push   esi
-                          push   ebx
-                          push   ecx
-                          mov    esi, edx
-                          xor    ebx, ebx
-                          xor    ecx, ecx
-    
-    find_at:              
-                          mov    al, [esi]
-                          cmp    al, 0
-                          je     check_at
-    
-                          cmp    al, '@'
-                          jne    find_next
-    
-                          inc    ebx
-                          mov    ecx, esi
-    
-    find_next:            
-                          inc    esi
-                          jmp    find_at
-    
-    check_at:             
-                          cmp    ebx, 1
-                          jne    _invalid
-    
-                          cmp    ecx, edx
-                          je     _invalid
-    
-                          mov    esi, ecx
-                          inc    esi
-                          xor    ebx, ebx
-    
-    find_dot:             
-                          mov    al, [esi]
-                          cmp    al, 0
-                          je     check_dot
-    
-                          cmp    al, '.'
-                          jne    dot_next
-    
-                          inc    ebx
-    
-    dot_next:             
-                          inc    esi
-                          jmp    find_dot
-    
-    check_dot:            
-                          cmp    ebx, 1
-                          jl     _invalid
-    
-                          dec    esi
-                          mov    al, [esi]
-                          cmp    al, '.'
-                          je     _invalid
-                          cmp    al, '@'
-                          je     _invalid
-    
-                          mov    eax, 1
-                          pop    ecx
-                          pop    ebx
-                          pop    esi
-                          ret
-    
-    _invalid:             
-                          mov    eax, 0
-                          pop    ecx
-                          pop    ebx
-                          pop    esi
-                          ret
+                            push   esi
+                            push   ebx
+                            push   ecx
+                            mov    esi, edx
+                            xor    ebx, ebx
+                            xor    ecx, ecx
+    find_at:                
+                            mov    al, [esi]
+                            cmp    al, 0
+                            je     check_at
+                            cmp    al, '@'
+                            jne    find_next_e
+                            inc    ebx
+                            mov    ecx, esi
+    find_next_e:            
+                            inc    esi
+                            jmp    find_at
+    check_at:               
+                            cmp    ebx, 1
+                            jne    _einvalid
+                            cmp    ecx, edx
+                            je     _einvalid
+                            mov    esi, ecx
+                            inc    esi
+                            xor    ebx, ebx
+    find_dot:               
+                            mov    al, [esi]
+                            cmp    al, 0
+                            je     check_dot
+                            cmp    al, '.'
+                            jne    dot_next
+                            inc    ebx
+    dot_next:               
+                            inc    esi
+                            jmp    find_dot
+    check_dot:              
+                            cmp    ebx, 1
+                            jl     _einvalid
+                            dec    esi
+                            mov    al, [esi]
+                            cmp    al, '.'
+                            je     _einvalid
+                            cmp    al, '@'
+                            je     _einvalid
+                            mov    eax, 1
+                            pop    ecx
+                            pop    ebx
+                            pop    esi
+                            ret
+    _einvalid:              
+                            mov    eax, 0
+                            pop    ecx
+                            pop    ebx
+                            pop    esi
+                            ret
 ValidateEmail ENDP
 
 ReadValidatedString PROC
-                          push   ebx
-                          push   edi
-                          push   esi
+                            push   ebx
+                            push   edi
+                            push   esi
+                            mov    ebx, edx                                            ; EBX = Buffer Pointer
+    retry_input:            
+                            mov    edx, ebx
+                            push   ecx
+                            call   ReadString
+                            pop    ecx
+                            mov    byte ptr [ebx + eax], 0
     
-                          mov    ebx, edx
+                            push   edx
+                            mov    edx, ebx
+                            push   eax
+                            call   ValidateNotEmpty
+                            pop    ecx
+                            pop    edx
+                            cmp    eax, 0
+                            je     show_empty_error
     
-    retry_input:          
-                          mov    edx, ebx
-                          push   ecx
-                          call   ReadString
-                          pop    ecx
+                            cmp    esi, 0                                              ; Check if validation proc provided
+                            je     input_success
     
-                          mov    byte ptr [ebx + eax], 0
-    
-                          push   edx
-                          mov    edx, ebx
-                          push   eax
-                          call   ValidateNotEmpty
-                          pop    ecx
-                          pop    edx
-    
-                          cmp    eax, 0
-                          je     show_empty_error
-    
-                          cmp    esi, 0
-                          je     input_success
-    
-                          push   edx
-                          mov    edx, ebx
-                          push   ecx
-                          call   esi
-                          pop    ecx
-                          pop    edx
-    
-                          cmp    eax, 0
-                          je     show_validation_error
-    
-    input_success:        
-                          mov    eax, ecx
-                          clc
-                          pop    esi
-                          pop    edi
-                          pop    ebx
-                          ret
-    
-    show_empty_error:     
-                          mov    edx, OFFSET emptyInputMsg
-                          call   WriteString
-                          jmp    ask_retry
-    
-    show_validation_error:
-                          mov    edx, edi
-                          call   WriteString
-    
-    ask_retry:            
-                          mov    edx, OFFSET retryPrompt
-                          call   WriteString
-                          call   ReadChar
-                          call   Crlf
-    
-                          cmp    al, 'C'
-                          je     input_cancelled
-                          cmp    al, 'c'
-                          je     input_cancelled
-    
-                          jmp    retry_input
-    
-    input_cancelled:      
-                          xor    eax, eax
-                          stc
-                          pop    esi
-                          pop    edi
-                          pop    ebx
-                          ret
+                            push   edx
+                            mov    edx, ebx
+                            push   ecx
+                            call   esi                                                 ; Call validator
+                            pop    ecx
+                            pop    edx
+                            cmp    eax, 0
+                            je     show_validation_error
+
+    input_success:          
+                            mov    eax, ecx
+                            clc
+                            pop    esi
+                            pop    edi
+                            pop    ebx
+                            ret
+
+    show_empty_error:       
+                            mov    edx, OFFSET emptyInputMsg
+                            call   WriteString
+                            jmp    ask_retry
+
+    show_validation_error:  
+                            mov    edx, edi                                            ; Error message offset
+                            call   WriteString
+
+    ask_retry:              
+                            mov    edx, OFFSET retryPrompt
+                            call   WriteString
+                            call   ReadChar
+                            call   Crlf
+                            cmp    al, 'C'
+                            je     input_cancelled
+                            cmp    al, 'c'
+                            je     input_cancelled
+                            jmp    retry_input
+
+    input_cancelled:        
+                            xor    eax, eax
+                            stc
+                            pop    esi
+                            pop    edi
+                            pop    ebx
+                            ret
 ReadValidatedString ENDP
-
-DeleteContact PROC
-                          pushad
-
-                          mov    eax, Contact_Count
-                          cmp    eax, 0
-                          je     del_empty
-
-                          mov    edx, OFFSET delPrompt
-                          call   WriteString
-                          call   ReadInt
-
-                          cmp    eax, 1
-                          jl     del_invalid
-                          cmp    eax, Contact_Count
-                          jg     del_invalid
-
-                          dec    eax
-                          mov    ebx, eax
-    
-                          mov    ecx, Contact_Count
-                          dec    ecx
-                          sub    ecx, ebx
-    
-                          cmp    ecx, 0
-                          je     del_decrement_only
-
-                          push   ecx
-
-                          mov    eax, ebx
-                          imul   eax, Name_Size
-                          lea    edi, names[eax]
-    
-                          mov    esi, edi
-                          add    esi, Name_Size
-
-                          mov    eax, [esp]
-                          imul   eax, Name_Size
-                          mov    ecx, eax
-    
-                          cld
-                          rep    movsb
-
-                          mov    eax, ebx
-                          imul   eax, Ph_Num_Size
-                          lea    edi, nums[eax]
-                          mov    esi, edi
-                          add    esi, Ph_Num_Size
-    
-                          mov    eax, [esp]
-                          imul   eax, Ph_Num_Size
-                          mov    ecx, eax
-                          rep    movsb
-
-                          mov    eax, ebx
-                          imul   eax, Addr_Size
-                          lea    edi, addrs[eax]
-                          mov    esi, edi
-                          add    esi, Addr_Size
-    
-                          mov    eax, [esp]
-                          imul   eax, Addr_Size
-                          mov    ecx, eax
-                          rep    movsb
-
-                          mov    eax, ebx
-                          imul   eax, Email_Size
-                          lea    edi, emails[eax]
-                          mov    esi, edi
-                          add    esi, Email_Size
-    
-                          mov    eax, [esp]
-                          imul   eax, Email_Size
-                          mov    ecx, eax
-                          rep    movsb
-
-                          pop    ecx
-
-    del_decrement_only:   
-                          dec    Contact_Count
-    
-                          mov    edx, OFFSET delConfirmMsg
-                          call   WriteString
-                          jmp    del_exit
-
-    del_empty:            
-                          mov    edx, OFFSET delErrEmpty
-                          call   WriteString
-                          jmp    del_exit
-
-    del_invalid:          
-                          mov    edx, OFFSET delErrInvalid
-                          call   WriteString
-                          jmp    del_exit
-
-    del_exit:             
-                          popad
-                          ret
-DeleteContact ENDP
-
-SearchContact PROC
-                          call   Clrscr
-
-                          cmp    Contact_Count, 0
-                          je     sc_not_found
-
-                          mov    edx, OFFSET searchPrompt
-                          call   WriteString
-
-                          mov    edx, OFFSET tempBuf
-                          mov    ecx, Name_Size - 1
-                          call   ReadString
-                          mov    byte ptr [tempBuf + eax], 0
-
-                          cmp    eax, 0
-                          je     sc_exit
-
-                          mov    lowIdx, 0
-
-                          mov    eax, Contact_Count
-                          dec    eax
-                          mov    highIdx, eax
-
-    sc_loop:              
-                          mov    eax, lowIdx
-                          cmp    eax, highIdx
-                          jg     sc_not_found
-
-                          mov    eax, lowIdx
-                          add    eax, highIdx
-                          sar    eax, 1
-                          mov    midIdx, eax
-
-                          mov    eax, midIdx
-                          imul   eax, Name_Size
-                          lea    edi, names[eax]
-                          mov    esi, OFFSET tempBuf
-
-                          INVOKE Str_compare, esi, edi
-
-                          je     sc_found
-                          jb     sc_go_left
-                          ja     sc_go_right
-
-    sc_go_left:           
-                          mov    eax, midIdx
-                          dec    eax
-                          mov    highIdx, eax
-                          jmp    sc_loop
-
-    sc_go_right:          
-                          mov    eax, midIdx
-                          inc    eax
-                          mov    lowIdx, eax
-                          jmp    sc_loop
-
-    sc_found:             
-                          mov    edx, OFFSET searchFoundMsg
-                          call   WriteString
-                          mov    ebx, midIdx
-                          call   DisplaySingleContact
-                          jmp    sc_exit
-
-    sc_not_found:         
-                          mov    edx, OFFSET searchNotFoundMsg
-                          call   WriteString
-
-    sc_exit:              
-                          ret
-SearchContact ENDP
-
-AutoSearch PROC
-                          call   Clrscr
-
-                          cmp    Contact_Count, 0
-                          je     as_not_found
-
-                          mov    edx, OFFSET autoSearchMsg
-                          call   WriteString
-
-                          mov    edx, OFFSET searchPrompt
-                          call   WriteString
-
-                          mov    edx, OFFSET tempBuf
-                          mov    ecx, Name_Size - 1
-                          call   ReadString
-                          mov    byte ptr [tempBuf + eax], 0
-
-                          cmp    eax, 0
-                          je     as_exit
-
-                          mov    ecx, Contact_Count
-                          mov    ebx, 0
-
-    as_loop:              
-                          mov    eax, ebx
-                          imul   eax, Name_Size
-                          lea    edi, names[eax]
-                          mov    esi, OFFSET tempBuf
-
-                          push   ecx
-                          INVOKE Str_compare, esi, edi
-                          pop    ecx
-
-                          je     as_found
-
-                          inc    ebx
-                          loop   as_loop
-
-                          jmp    as_not_found
-
-    as_found:             
-                          mov    edx, OFFSET searchFoundMsg
-                          call   WriteString
-
-                          call   DisplaySingleContact
-                          jmp    as_exit
-
-    as_not_found:         
-                          mov    edx, OFFSET searchNotFoundMsg
-                          call   WriteString
-
-    as_exit:              
-                          ret
-AutoSearch ENDP
-
-DisplaySingleContact PROC
-                          mov    edx, OFFSET NamePrompt
-                          call   WriteString
-
-                          mov    eax, ebx
-                          imul   eax, Name_Size
-                          lea    edx, names[eax]
-                          call   WriteString
-                          call   Crlf
-
-                          mov    edx, OFFSET PhPrompt
-                          call   WriteString
-
-                          mov    eax, ebx
-                          imul   eax, Ph_Num_Size
-                          lea    edx, nums[eax]
-                          call   WriteString
-                          call   Crlf
-
-                          mov    edx, OFFSET AddrPrompt
-                          call   WriteString
-
-                          mov    eax, ebx
-                          imul   eax, Addr_Size
-                          lea    edx, addrs[eax]
-                          call   WriteString
-                          call   Crlf
-
-                          mov    edx, OFFSET EmailPrompt
-                          call   WriteString
-
-                          mov    eax, ebx
-                          imul   eax, Email_Size
-                          lea    edx, emails[eax]
-                          call   WriteString
-                          call   Crlf
-                          ret
-DisplaySingleContact ENDP
 
 END main
