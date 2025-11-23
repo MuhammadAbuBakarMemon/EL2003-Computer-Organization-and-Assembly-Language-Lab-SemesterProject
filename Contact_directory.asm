@@ -324,73 +324,119 @@ swapblock ENDP
     ; DisplayContacts
     ; ---------------------------------------------------------
 DisplayContacts PROC
-                            pushad
-                            mov    eax, Contact_Count
-                            cmp    eax, 0
-                            je     display_empty
+    pushad
+    mov    eax, Contact_Count
+    cmp    eax, 0
+    je     display_empty
 
-                            mov    ebx, 0                                              ; Loop index
-    
-    ; Pointer to start of array
-                            lea    esi, directory
+    mov    ebx, 0                  ; Loop index
+    lea    esi, directory          ; Pointer to start of array
 
-    display_loop:           
-                            mov    edx, OFFSET contactDiv
-                            call   WriteString
+display_loop:
+    ; Print separator using default color
+    mov    eax, 07h                ; Light gray
+    call   SetTextColor
+    mov    edx, OFFSET contactDiv
+    call   WriteString
 
-                            mov    edx, OFFSET contactHeader
-                            call   WriteString
-                            mov    eax, ebx
-                            inc    eax
-                            call   WriteInt
-                            call   Crlf
+    ; Print header using default color
+    mov    eax, 07h
+    call   SetTextColor
+    mov    edx, OFFSET contactHeader
+    call   WriteString
+    mov    eax, ebx
+    inc    eax
+    call   WriteInt
+    call   Crlf
 
-    ; ESI currently points to directory[ebx]
-    
-    ; Name
-                            mov    edx, OFFSET NamePrompt
-                            call   WriteString
-                            lea    edx, (Contact PTR [esi]).personName
-                            call   WriteString
-                            call   Crlf
+    ; Set color for contact fields
+    mov    al, (Contact PTR [esi]).c_label
+    cmp    al, 1
+    je     set_green
+    cmp    al, 2
+    je     set_red
+    jmp    set_default
+
+set_green:
+    mov    eax, 0Ah                ; Green
+    call   SetTextColor
+    jmp    show_contact_fields
+
+set_red:
+    mov    eax, 0Ch                ; Red
+    call   SetTextColor
+    jmp    show_contact_fields
+
+set_default:
+    mov    eax, 07h                ; Default (light gray)
+    call   SetTextColor
+
+show_contact_fields:
+    ; Name with label
+    mov    edx, OFFSET NamePrompt
+    call   WriteString
+    lea    edx, (Contact PTR [esi]).personName
+    call   WriteString
+
+    mov    al, (Contact PTR [esi]).c_label
+    cmp    al, 1
+    je     show_friend_str
+    cmp    al, 2
+    je     show_fav_str
+    jmp    show_label_done
+show_friend_str:
+    mov    edx, OFFSET FriendStr
+    call   WriteString
+    jmp    show_label_done
+show_fav_str:
+    mov    edx, OFFSET FavouriteStr
+    call   WriteString
+show_label_done:
+    call   Crlf
 
     ; Phone
-                            mov    edx, OFFSET PhPrompt
-                            call   WriteString
-                            lea    edx, (Contact PTR [esi]).phone
-                            call   WriteString
-                            call   Crlf
+    mov    edx, OFFSET PhPrompt
+    call   WriteString
+    lea    edx, (Contact PTR [esi]).phone
+    call   WriteString
+    call   Crlf
 
     ; Address
-                            mov    edx, OFFSET AddrPrompt
-                            call   WriteString
-                            lea    edx, (Contact PTR [esi]).address
-                            call   WriteString
-                            call   Crlf
+    mov    edx, OFFSET AddrPrompt
+    call   WriteString
+    lea    edx, (Contact PTR [esi]).address
+    call   WriteString
+    call   Crlf
 
     ; Email
-                            mov    edx, OFFSET EmailPrompt
-                            call   WriteString
-                            lea    edx, (Contact PTR [esi]).email
-                            call   WriteString
-                            call   Crlf
+    mov    edx, OFFSET EmailPrompt
+    call   WriteString
+    lea    edx, (Contact PTR [esi]).email
+    call   WriteString
+    call   Crlf
+
+    ; Reset color before next separator
+    mov    eax, 07h
+    call   SetTextColor
 
     ; Move to next struct
-                            add    esi, TYPE Contact
-                            inc    ebx
-                            cmp    ebx, Contact_Count
-                            jl     display_loop
+    add    esi, TYPE Contact
+    inc    ebx
+    cmp    ebx, Contact_Count
+    jl     display_loop
 
-                            mov    edx, OFFSET contactDiv
-                            call   WriteString
-                            popad
-                            ret
+    mov    eax, 07h
+    call   SetTextColor
+    mov    edx, OFFSET contactDiv
+    call   WriteString
+    popad
+    ret
 
-    display_empty:          
-                            mov    edx, OFFSET displayEmptyMsg
-                            call   WriteString
-                            popad
-                            ret
+display_empty:          
+    mov    edx, OFFSET displayEmptyMsg
+    call   WriteString
+    popad
+    ret
 DisplayContacts ENDP
 
     ; ---------------------------------------------------------
